@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI } from '../../services/api';
 import Loading from '../Common/Loading';
+import { formatDateBR } from '../../utils/date';
 import {
   InboxArrowDownIcon,
   ArrowPathIcon,
@@ -197,7 +198,7 @@ export default function Dashboard() {
                 <h3 className="font-medium text-white mb-1 truncate">{p.titulo}</h3>
                 <p className="text-xs text-gray-500">{p.cliente_nome || 'Sem cliente'}</p>
                 <p className="text-xs text-gray-600 mt-2">
-                  {p.data_criacao ? new Date(p.data_criacao).toLocaleDateString('pt-BR') : ''}
+                  {p.data_criacao ? formatDateBR(p.data_criacao) : ''}
                 </p>
               </div>
             ))}

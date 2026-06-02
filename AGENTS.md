@@ -49,6 +49,7 @@ There is **no lint, formatter, or typecheck config** in this repo (no ruff/black
 - `src/components/<Feature>/` — One folder per feature (Clientes, Projetos, Kanban, Tarefas, Apontamentos, Relatorios, Dashboard, Layout, Common).
 - `src/services/api.js:1` — Axios instance with hardcoded `X-API-Key` + per-entity helpers (`clientesAPI`, `projetosAPI`, `tarefasAPI`, `apontamentosAPI`, `uploadAPI`, `relatoriosAPI`, `dashboardAPI`).
 - `src/hooks/usePersistedState.js:1` — `useState` wrapper that mirrors to `localStorage`. Use for filter state (Kanban uses it for `kanban.selectedCliente` / `kanban.selectedProjeto`).
+- `src/utils/date.js:1` — `formatDateBR(iso)` (formata `YYYY-MM-DD` → `dd/MM/yyyy` sem conversão de fuso) e `getTodayLocalISO()` (data de hoje no fuso local). Regra: datas vindas do backend **sempre** passam por esses helpers; nunca `new Date(iso).toLocaleDateString(...)` (a spec ECMAScript trata `YYYY-MM-DD` como UTC e gera drift de D-1 em fusos a oeste do UTC) e nunca `new Date().toISOString().split('T')[0]` para defaults de form (avança um dia após 21h BRT).
 - Vite dev server (`:5173`) proxies `/api` → `http://localhost:8000`. In Docker, nginx proxies `/api/` → `http://backend:8000/api/`.
 
 ## Auth

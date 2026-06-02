@@ -4,6 +4,7 @@ import usePersistedState from '../../hooks/usePersistedState';
 import { projetosAPI, clientesAPI } from '../../services/api';
 import Loading from '../Common/Loading';
 import ProjetoForm from './ProjetoForm';
+import { formatDateBR } from '../../utils/date';
 import { PlusIcon, PencilSquareIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function ProjetosList() {
@@ -125,7 +126,7 @@ export default function ProjetosList() {
                     </td>
                     <td className="px-4 py-3.5 hidden lg:table-cell">
                       <p className="text-sm text-gray-400">
-                        {p.data_criacao ? new Date(p.data_criacao).toLocaleDateString('pt-BR') : '—'}
+                        {p.data_criacao ? formatDateBR(p.data_criacao) : '—'}
                       </p>
                     </td>
                     <td className="px-4 py-3.5 text-right">

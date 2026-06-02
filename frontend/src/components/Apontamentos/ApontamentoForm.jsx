@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { apontamentosAPI } from '../../services/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import { getTodayLocalISO } from '../../utils/date';
 
 function calcHoras(ini, fim) {
   if (!ini || !fim) return 0;
@@ -17,7 +18,7 @@ function formatHoras(horas) {
 }
 
 export default function ApontamentoForm({ tarefaId, onSave }) {
-  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [data, setData] = useState(getTodayLocalISO());
   const [horaIni, setHoraIni] = useState('');
   const [horaFim, setHoraFim] = useState('');
   const [saving, setSaving] = useState(false);
@@ -47,7 +48,7 @@ export default function ApontamentoForm({ tarefaId, onSave }) {
       });
       setHoraIni('');
       setHoraFim('');
-      setData(new Date().toISOString().split('T')[0]);
+      setData(getTodayLocalISO());
       if (onSave) onSave();
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao salvar apontamento.');

@@ -8,6 +8,7 @@ import TarefaForm from './TarefaForm';
 import ApontamentoForm from '../Apontamentos/ApontamentoForm';
 import FileUpload from '../Common/FileUpload';
 import FilePreviewModal from '../Common/FilePreviewModal';
+import { formatDateBR } from '../../utils/date';
 import {
   ArrowLeftIcon,
   PencilSquareIcon,
@@ -169,7 +170,7 @@ export default function TarefaDetail() {
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Criada em {tarefa.data_criacao ? new Date(tarefa.data_criacao).toLocaleDateString('pt-BR') : '—'}
+              Criada em {tarefa.data_criacao ? formatDateBR(tarefa.data_criacao) : '—'}
             </p>
           </div>
           <button
@@ -231,7 +232,7 @@ export default function TarefaDetail() {
                 >
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-gray-200">
-                      {ap.data ? new Date(ap.data).toLocaleDateString('pt-BR') : '—'}
+                      {ap.data ? formatDateBR(ap.data) : '—'}
                     </span>
                     <span className="font-mono text-gray-400">
                       {ap.hora_ini ? ap.hora_ini.substring(0, 5) : '--:--'}
