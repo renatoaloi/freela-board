@@ -204,4 +204,4 @@ Os testes usam um banco SQLite separado (`backend/test_freelaboard.db`) que é r
 
 ## Licença
 
-Projeto privado de uso pessoal.
+MIT
