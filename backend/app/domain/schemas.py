@@ -14,6 +14,13 @@ def validate_hhmm(v: str) -> str:
     return v
 
 
+def _format_cep(v: str) -> str:
+    cleaned = re.sub(r"\D", "", v)
+    if len(cleaned) != 8:
+        raise ValueError("CEP must have exactly 8 digits")
+    return f"{cleaned[:5]}-{cleaned[5:]}"
+
+
 class ClienteCreate(BaseModel):
     nome: str = Field(..., max_length=255)
     razao_social: str = Field(..., max_length=255)
@@ -24,6 +31,12 @@ class ClienteCreate(BaseModel):
     bairro: str = Field(..., max_length=255)
     cidade: str = Field(..., max_length=255)
     estado: str = Field(..., min_length=2, max_length=2)
+    cep: str = Field(..., min_length=8, max_length=9)
+
+    @field_validator("cep")
+    @classmethod
+    def validate_cep(cls, v: str) -> str:
+        return _format_cep(v)
 
     @field_validator("documento")
     @classmethod
@@ -51,6 +64,14 @@ class ClienteUpdate(BaseModel):
     bairro: Optional[str] = Field(None, max_length=255)
     cidade: Optional[str] = Field(None, max_length=255)
     estado: Optional[str] = Field(None, min_length=2, max_length=2)
+    cep: Optional[str] = Field(None, min_length=8, max_length=9)
+
+    @field_validator("cep")
+    @classmethod
+    def validate_cep(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        return _format_cep(v)
 
     @field_validator("documento")
     @classmethod
@@ -83,6 +104,7 @@ class ClienteResponse(BaseModel):
     bairro: str
     cidade: str
     estado: str
+    cep: str
     created_at: datetime
     updated_at: datetime
 
@@ -203,6 +225,7 @@ class RelatorioClienteInfo(BaseModel):
     bairro: str
     cidade: str
     estado: str
+    cep: str
 
 
 class RelatorioTarefaItem(BaseModel):

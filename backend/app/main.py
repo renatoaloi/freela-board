@@ -4,11 +4,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.api import api_router
+from sqlalchemy import text
+
 from app.core.database import Base, engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE clientes ADD COLUMN cep VARCHAR(9) NOT NULL DEFAULT ''"))
+            conn.commit()
+    except Exception:
+        pass
     Base.metadata.create_all(bind=engine)
     yield
 

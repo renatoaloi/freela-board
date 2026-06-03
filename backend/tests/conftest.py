@@ -61,6 +61,7 @@ def sample_cliente_data():
         "bairro": "Centro",
         "cidade": "São Paulo",
         "estado": "SP",
+        "cep": "04571-010",
     }
 
 

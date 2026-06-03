@@ -75,6 +75,7 @@ def _build_context(data: RelatorioResponse) -> dict[str, Any]:
             "bairro": cliente.bairro,
             "cidade": cliente.cidade,
             "estado": cliente.estado,
+            "cep": cliente.cep,
             "email": cliente.email,
         },
         "totais": {

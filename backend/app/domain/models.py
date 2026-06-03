@@ -23,6 +23,7 @@ class ClienteModel(Base):
     bairro: Mapped[str] = mapped_column(String(255), nullable=False)
     cidade: Mapped[str] = mapped_column(String(255), nullable=False)
     estado: Mapped[str] = mapped_column(String(2), nullable=False)
+    cep: Mapped[str] = mapped_column(String(9), nullable=False, default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )

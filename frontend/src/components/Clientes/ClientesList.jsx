@@ -43,6 +43,7 @@ export default function ClientesList() {
       c.nome?.toLowerCase().includes(search.toLowerCase()) ||
       c.email?.toLowerCase().includes(search.toLowerCase()) ||
       c.documento?.includes(search) ||
+      c.cep?.includes(search) ||
       c.cidade?.toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -87,6 +88,7 @@ export default function ClientesList() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">Email</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">Documento</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden lg:table-cell">CEP</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider hidden lg:table-cell">Cidade</th>
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
                 </tr>
@@ -102,6 +104,9 @@ export default function ClientesList() {
                     </td>
                     <td className="px-4 py-3.5 hidden md:table-cell">
                       <p className="text-sm font-mono text-gray-400">{c.documento || '-'}</p>
+                    </td>
+                    <td className="px-4 py-3.5 hidden lg:table-cell">
+                      <p className="text-sm font-mono text-gray-400">{c.cep || '-'}</p>
                     </td>
                     <td className="px-4 py-3.5 hidden lg:table-cell">
                       <p className="text-sm text-gray-400">{c.cidade || '-'}</p>

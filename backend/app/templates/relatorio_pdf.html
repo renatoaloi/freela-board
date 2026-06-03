@@ -206,6 +206,10 @@
       <span class="value">{{ cliente.endereco }}{% if cliente.complemento %}, {{ cliente.complemento }}{% endif %}{% if cliente.bairro %} - {{ cliente.bairro }}{% endif %}</span>
     </div>
     <div class="row">
+      <span class="label">CEP</span>
+      <span class="value">CEP {{ cliente.cep }}</span>
+    </div>
+    <div class="row">
       <span class="label">Cidade / UF</span>
       <span class="value">{{ cliente.cidade }}{% if cliente.estado %} / {{ cliente.estado }}{% endif %}</span>
     </div>

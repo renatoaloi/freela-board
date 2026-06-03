@@ -204,6 +204,9 @@ export default function RelatorioView() {
                     {result.cliente.bairro ? ` - ${result.cliente.bairro}` : ''}
                   </p>
                 )}
+                {result.cliente?.cep && (
+                  <p className="text-xs text-gray-500">CEP {result.cliente.cep}</p>
+                )}
                 {result.cliente?.cidade && (
                   <p className="text-xs text-gray-500">
                     {result.cliente.cidade}{result.cliente.estado ? `/ ${result.cliente.estado}` : ''}

@@ -72,6 +72,7 @@ class RelatorioService:
                 bairro=cliente.bairro,
                 cidade=cliente.cidade,
                 estado=cliente.estado,
+                cep=cliente.cep,
             ),
             mes_referencia=f"{mes:02d}/{ano}",
             totais=RelatorioTotais(

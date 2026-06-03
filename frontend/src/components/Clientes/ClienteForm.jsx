@@ -16,6 +16,7 @@ const initialState = {
   bairro: '',
   cidade: '',
   estado: '',
+  cep: '',
 };
 
 export default function ClienteForm({ isOpen, onClose, onSave, cliente }) {
@@ -35,6 +36,7 @@ export default function ClienteForm({ isOpen, onClose, onSave, cliente }) {
         bairro: cliente.bairro || '',
         cidade: cliente.cidade || '',
         estado: cliente.estado || '',
+        cep: cliente.cep || '',
       });
     } else {
       setForm(initialState);
@@ -62,6 +64,7 @@ export default function ClienteForm({ isOpen, onClose, onSave, cliente }) {
     try {
       const payload = { ...form };
       payload.documento = form.documento.replace(/\D/g, '');
+      if (payload.cep) payload.cep = payload.cep.replace(/\D/g, '');
       if (cliente) {
         await clientesAPI.update(cliente.id, payload);
       } else {
@@ -79,6 +82,7 @@ export default function ClienteForm({ isOpen, onClose, onSave, cliente }) {
   const handleChange = (field) => (e) => {
     let val = e.target.value;
     if (field === 'documento') val = val.replace(/\D/g, '').slice(0, 14);
+    if (field === 'cep') val = val.replace(/\D/g, '').slice(0, 8);
     setForm((prev) => ({ ...prev, [field]: val }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
   };
@@ -137,14 +141,20 @@ export default function ClienteForm({ isOpen, onClose, onSave, cliente }) {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-gray-300">Estado</label>
-          <select value={form.estado} onChange={handleChange('estado')} className="input-field">
-            <option value="">Selecione...</option>
-            {estados.map((uf) => (
-              <option key={uf} value={uf}>{uf}</option>
-            ))}
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-300">Estado</label>
+            <select value={form.estado} onChange={handleChange('estado')} className="input-field">
+              <option value="">Selecione...</option>
+              {estados.map((uf) => (
+                <option key={uf} value={uf}>{uf}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-300">CEP</label>
+            <input value={form.cep} onChange={handleChange('cep')} className="input-field font-mono" placeholder="Apenas números" />
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">
