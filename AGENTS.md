@@ -28,7 +28,10 @@ docker compose up --build
 | Run frontend dev | `cd frontend && npm run dev` |
 | Build frontend | `cd frontend && npm run build` |
 | Preview build | `cd frontend && npm run preview` |
-| Reset dev DB | delete `storage/freelaboard.db` (auto-recreated on next start) |
+| Create new migration | `cd backend && python -m alembic revision --autogenerate -m "description"` |
+| Apply migrations | `cd backend && python -m alembic upgrade head` (auto-run on app startup) |
+| Check migration status | `cd backend && python -m alembic current` |
+| Reset dev DB | delete `storage/freelaboard.db` (recreated via migration on next start) |
 | Stop Docker | `docker compose down` (uploads + SQLite live in `./storage`) |
 
 There is **no lint, formatter, or typecheck config** in this repo (no ruff/black/eslint/prettier/mypy). Do not invent one without asking.
@@ -59,7 +62,7 @@ All backend endpoints require `X-API-Key` header. Default: `freela-secret-key-20
 ## Database
 
 - SQLite at `storage/freelaboard.db` (default `DATABASE_URL=sqlite:///../storage/freelaboard.db`).
-- Tables auto-created on startup by `Base.metadata.create_all()` in the FastAPI lifespan (`app/main.py:12`). **Do not run `alembic upgrade`** — `backend/alembic/` is wired up but `alembic/versions/` is empty; the project does not use migrations.
+- Tables are created and managed via Alembic migrations, auto-applied on app startup (`alembic upgrade head` in the FastAPI lifespan at `app/main.py:13`). Schema changes must go through `alembic revision --autogenerate`.
 - Test DB: `backend/test_freelaboard.db`. The `setup_database` autouse fixture in `backend/tests/conftest.py:30` drops and recreates all tables per test, so file persists but is empty.
 
 ## File uploads
