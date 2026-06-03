@@ -173,7 +173,7 @@ export default function Dashboard() {
                     }`}>
                       {i + 1}
                     </span>
-                    <span className="text-sm text-gray-200">{p.titulo}</span>
+                    <span className="text-sm text-gray-200">{p.projeto_titulo}</span>
                   </div>
                   <span className="text-sm text-accent-pinkLight font-medium">
                     {Number(p.total_horas || 0).toFixed(1)}h
