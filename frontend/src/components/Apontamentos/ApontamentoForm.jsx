@@ -53,7 +53,12 @@ export default function ApontamentoForm({ tarefaId, onSave }) {
       dataRef.current?.focus();
       if (onSave) onSave();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao salvar apontamento.');
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail.map((e) => e.msg).join('; '));
+      } else {
+        setError(detail || 'Erro ao salvar apontamento.');
+      }
     } finally {
       setSaving(false);
     }

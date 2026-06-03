@@ -8,6 +8,8 @@ import TarefaForm from './TarefaForm';
 import ApontamentoForm from '../Apontamentos/ApontamentoForm';
 import FileUpload from '../Common/FileUpload';
 import FilePreviewModal from '../Common/FilePreviewModal';
+import ConfirmModal from '../Common/ConfirmModal';
+import AlertModal from '../Common/AlertModal';
 import { formatDateBR } from '../../utils/date';
 import {
   ArrowLeftIcon,
@@ -99,6 +101,8 @@ export default function TarefaDetail() {
   const [formOpen, setFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('apontamentos');
   const [coverModalFile, setCoverModalFile] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alertMsg, setAlertMsg] = useState(null);
 
   const fetchTarefa = useCallback(async () => {
     try {
@@ -126,13 +130,15 @@ export default function TarefaDetail() {
     load();
   }, [fetchTarefa, fetchApontamentos]);
 
-  const handleDeleteApontamento = async (apId) => {
-    if (!confirm('Excluir este apontamento?')) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await apontamentosAPI.delete(apId);
+      await apontamentosAPI.delete(deleteTarget);
       await fetchApontamentos();
     } catch {
-      alert('Erro ao excluir apontamento.');
+      setAlertMsg('Erro ao excluir apontamento.');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -246,7 +252,7 @@ export default function TarefaDetail() {
                     </span>
                   </div>
                   <button
-                    onClick={() => handleDeleteApontamento(ap.id)}
+                    onClick={() => setDeleteTarget(ap.id)}
                     className="p-1.5 text-gray-500 hover:text-accent-pink transition-colors"
                     title="Excluir"
                   >
@@ -281,6 +287,22 @@ export default function TarefaDetail() {
         filename={coverModalFile}
         isOpen={!!coverModalFile}
         onClose={() => setCoverModalFile(null)}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Excluir Apontamento"
+        message="Tem certeza que deseja excluir este apontamento?"
+        confirmLabel="Excluir"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      <AlertModal
+        isOpen={!!alertMsg}
+        title="Erro"
+        message={alertMsg}
+        onClose={() => setAlertMsg(null)}
       />
     </div>
   );

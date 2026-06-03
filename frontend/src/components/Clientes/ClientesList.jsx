@@ -3,6 +3,8 @@ import usePersistedState from '../../hooks/usePersistedState';
 import { clientesAPI } from '../../services/api';
 import Loading from '../Common/Loading';
 import ClienteForm from './ClienteForm';
+import ConfirmModal from '../Common/ConfirmModal';
+import AlertModal from '../Common/AlertModal';
 import { PlusIcon, PencilSquareIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 export default function ClientesList() {
@@ -12,6 +14,8 @@ export default function ClientesList() {
   const [search, setSearch] = usePersistedState('clientes.search', '');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alertMsg, setAlertMsg] = useState(null);
 
   const fetchClientes = useCallback(async () => {
     try {
@@ -28,13 +32,15 @@ export default function ClientesList() {
     fetchClientes();
   }, [fetchClientes]);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Excluir este cliente? Todas os projetos e tarefas associados serão removidos.')) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await clientesAPI.delete(id);
+      await clientesAPI.delete(deleteTarget);
       await fetchClientes();
     } catch {
-      alert('Erro ao excluir cliente.');
+      setAlertMsg('Erro ao excluir cliente.');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -121,7 +127,7 @@ export default function ClientesList() {
                           <PencilSquareIcon className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(c.id)}
+                          onClick={() => setDeleteTarget(c.id)}
                           className="btn-icon text-gray-400 hover:text-accent-pink"
                           title="Excluir"
                         >
@@ -142,6 +148,22 @@ export default function ClientesList() {
         onClose={() => { setFormOpen(false); setEditing(null); }}
         onSave={() => { setFormOpen(false); setEditing(null); fetchClientes(); }}
         cliente={editing}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Excluir Cliente"
+        message="Tem certeza que deseja excluir este cliente? Todos os projetos e tarefas associados serão removidos."
+        confirmLabel="Excluir"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      <AlertModal
+        isOpen={!!alertMsg}
+        title="Erro"
+        message={alertMsg}
+        onClose={() => setAlertMsg(null)}
       />
     </div>
   );

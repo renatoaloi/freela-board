@@ -4,6 +4,8 @@ import usePersistedState from '../../hooks/usePersistedState';
 import { projetosAPI, clientesAPI } from '../../services/api';
 import Loading from '../Common/Loading';
 import ProjetoForm from './ProjetoForm';
+import ConfirmModal from '../Common/ConfirmModal';
+import AlertModal from '../Common/AlertModal';
 import { formatDateBR } from '../../utils/date';
 import { PlusIcon, PencilSquareIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
@@ -15,6 +17,8 @@ export default function ProjetosList() {
   const [filterCliente, setFilterCliente] = usePersistedState('projetos.filterCliente', '');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alertMsg, setAlertMsg] = useState(null);
   const navigate = useNavigate();
 
   const fetchProjetos = useCallback(async () => {
@@ -44,13 +48,15 @@ export default function ProjetosList() {
     fetchProjetos();
   }, [fetchProjetos]);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Excluir este projeto? Todas as tarefas associadas serão removidas.')) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await projetosAPI.delete(id);
+      await projetosAPI.delete(deleteTarget);
       await fetchProjetos();
     } catch {
-      alert('Erro ao excluir projeto.');
+      setAlertMsg('Erro ao excluir projeto.');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -146,7 +152,7 @@ export default function ProjetosList() {
                           <PencilSquareIcon className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => setDeleteTarget(p.id)}
                           className="btn-icon text-gray-400 hover:text-accent-pink"
                           title="Excluir"
                         >
@@ -168,6 +174,22 @@ export default function ProjetosList() {
         onSave={() => { setFormOpen(false); setEditing(null); fetchProjetos(); }}
         projeto={editing}
         clientes={clientes}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Excluir Projeto"
+        message="Tem certeza que deseja excluir este projeto? Todas as tarefas associadas serão removidas."
+        confirmLabel="Excluir"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      <AlertModal
+        isOpen={!!alertMsg}
+        title="Erro"
+        message={alertMsg}
+        onClose={() => setAlertMsg(null)}
       />
     </div>
   );

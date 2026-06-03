@@ -65,7 +65,13 @@ export default function TarefaForm({ isOpen, onClose, onSave, tarefa, projetoId,
       }
       onSave();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Erro ao salvar tarefa.';
+      const detail = err.response?.data?.detail;
+      let msg = 'Erro ao salvar tarefa.';
+      if (Array.isArray(detail)) {
+        msg = detail.map((e) => e.msg).join('; ');
+      } else if (typeof detail === 'string') {
+        msg = detail;
+      }
       setErrors({ submit: msg });
     } finally {
       setSaving(false);

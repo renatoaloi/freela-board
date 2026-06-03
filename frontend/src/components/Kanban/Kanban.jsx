@@ -6,6 +6,7 @@ import { tarefasAPI, clientesAPI, projetosAPI } from '../../services/api';
 import Loading from '../Common/Loading';
 import TarefaForm from '../Tarefas/TarefaForm';
 import KanbanColumn from './KanbanColumn';
+import AlertModal from '../Common/AlertModal';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
 const statusList = ['nova', 'em_andamento', 'pronta', 'fechada'];
@@ -21,6 +22,7 @@ export default function Kanban() {
   const [selectedProjeto, setSelectedProjeto] = usePersistedState('kanban.selectedProjeto', '');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('nova');
+  const [alertMsg, setAlertMsg] = useState(null);
 
   const tarefasRef = useRef(tarefas);
   tarefasRef.current = tarefas;
@@ -94,7 +96,7 @@ export default function Kanban() {
       await fetchTarefas();
     } catch {
       setTarefas(previousTarefas);
-      alert('Erro ao atualizar status da tarefa.');
+      setAlertMsg('Erro ao atualizar status da tarefa.');
     }
   };
 
@@ -182,6 +184,13 @@ export default function Kanban() {
         onSave={() => { setFormOpen(false); fetchTarefas(); }}
         projetoId={selectedProjeto}
         initialStatus={selectedStatus}
+      />
+
+      <AlertModal
+        isOpen={!!alertMsg}
+        title="Erro"
+        message={alertMsg}
+        onClose={() => setAlertMsg(null)}
       />
     </div>
   );

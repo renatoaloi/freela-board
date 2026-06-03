@@ -2,12 +2,16 @@ import React, { useState, useRef } from 'react';
 import { uploadAPI } from '../../services/api';
 import { TrashIcon, PaperClipIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import FilePreviewModal from './FilePreviewModal';
+import ConfirmModal from './ConfirmModal';
+import AlertModal from './AlertModal';
 
 export default function FileUpload({ tarefaId, anexos = [], onChange }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [alertMsg, setAlertMsg] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleUpload = async (file) => {
@@ -21,7 +25,7 @@ export default function FileUpload({ tarefaId, anexos = [], onChange }) {
       });
       if (onChange) await onChange();
     } catch {
-      alert('Erro ao fazer upload do arquivo.');
+      setAlertMsg('Erro ao fazer upload do arquivo.');
     } finally {
       setUploading(false);
       setProgress(0);
@@ -35,13 +39,15 @@ export default function FileUpload({ tarefaId, anexos = [], onChange }) {
     if (file) handleUpload(file);
   };
 
-  const handleDelete = async (filename) => {
-    if (!confirm('Excluir este arquivo?')) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await uploadAPI.delete(tarefaId, filename);
+      await uploadAPI.delete(tarefaId, deleteTarget);
       if (onChange) await onChange();
     } catch {
-      alert('Erro ao excluir arquivo.');
+      setAlertMsg('Erro ao excluir arquivo.');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -111,7 +117,7 @@ export default function FileUpload({ tarefaId, anexos = [], onChange }) {
                   </button>
                 </div>
                 <button
-                  onClick={() => handleDelete(filename)}
+                  onClick={() => setDeleteTarget(filename)}
                   className="p-1.5 text-gray-500 hover:text-accent-pink transition-colors flex-shrink-0"
                   title="Excluir"
                 >
@@ -128,6 +134,22 @@ export default function FileUpload({ tarefaId, anexos = [], onChange }) {
         filename={previewFile}
         isOpen={!!previewFile}
         onClose={() => setPreviewFile(null)}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title="Excluir Arquivo"
+        message="Tem certeza que deseja excluir este arquivo?"
+        confirmLabel="Excluir"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      <AlertModal
+        isOpen={!!alertMsg}
+        title="Erro"
+        message={alertMsg}
+        onClose={() => setAlertMsg(null)}
       />
     </div>
   );

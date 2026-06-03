@@ -72,7 +72,13 @@ export default function ClienteForm({ isOpen, onClose, onSave, cliente }) {
       }
       onSave();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Erro ao salvar cliente.';
+      const detail = err.response?.data?.detail;
+      let msg = 'Erro ao salvar cliente.';
+      if (Array.isArray(detail)) {
+        msg = detail.map((e) => e.msg).join('; ');
+      } else if (typeof detail === 'string') {
+        msg = detail;
+      }
       setErrors({ submit: msg });
     } finally {
       setSaving(false);
