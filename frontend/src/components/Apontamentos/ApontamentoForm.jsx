@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { apontamentosAPI } from '../../services/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { getTodayLocalISO } from '../../utils/date';
@@ -21,6 +21,7 @@ export default function ApontamentoForm({ tarefaId, onSave }) {
   const [data, setData] = useState(getTodayLocalISO());
   const [horaIni, setHoraIni] = useState('');
   const [horaFim, setHoraFim] = useState('');
+  const dataRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -49,6 +50,7 @@ export default function ApontamentoForm({ tarefaId, onSave }) {
       setHoraIni('');
       setHoraFim('');
       setData(getTodayLocalISO());
+      dataRef.current?.focus();
       if (onSave) onSave();
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao salvar apontamento.');
@@ -67,10 +69,12 @@ export default function ApontamentoForm({ tarefaId, onSave }) {
         <div>
           <label className="block text-xs text-gray-400 mb-1">Data</label>
           <input
+            ref={dataRef}
             type="date"
             value={data}
             onChange={(e) => setData(e.target.value)}
             className="input-field text-sm"
+            autoFocus
           />
         </div>
         <div>
