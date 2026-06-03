@@ -173,17 +173,20 @@ export default function RelatorioView() {
                     {result.cliente.cidade}{result.cliente.estado ? `/ ${result.cliente.estado}` : ''}
                   </p>
                 )}
+                {result.cliente?.email && (
+                  <p className="text-xs text-gray-500 mt-1">{result.cliente.email}</p>
+                )}
               </div>
               <div className="bg-primary-800/50 rounded-lg p-4 border border-primary-700/50">
                 <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Resumo</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-400">Total de Horas</span>
-                    <span className="text-sm font-mono text-accent-green font-medium">{formatHoras(result.total_horas_geral)}h</span>
+                    <span className="text-sm font-mono text-accent-green font-medium">{formatHoras(result.totais?.total_horas)}h</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-400">Valor Total</span>
-                    <span className="text-sm font-mono text-accent-pinkLight font-bold">{formatMoeda(result.valor_total_geral)}</span>
+                    <span className="text-sm font-mono text-accent-pinkLight font-bold">{formatMoeda(result.totais?.total_valor)}</span>
                   </div>
                 </div>
               </div>
@@ -213,34 +216,31 @@ export default function RelatorioView() {
                           <p className="font-mono text-accent-pinkLight font-medium">{formatMoeda(proj.valor_total)}</p>
                         </div>
                       </div>
+                      {proj.tarefas && proj.tarefas.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-primary-700/30">
+                          <h5 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Tarefas</h5>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-primary-700/30">
+                                  <th className="text-left px-2 py-1 text-xs text-gray-500">Tarefa</th>
+                                  <th className="text-right px-2 py-1 text-xs text-gray-500">Horas</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-primary-700/20">
+                                {proj.tarefas.map((tarefa, j) => (
+                                  <tr key={tarefa.tarefa_id || j}>
+                                    <td className="px-2 py-1 text-gray-200">{tarefa.titulo}</td>
+                                    <td className="px-2 py-1 text-right font-mono text-accent-green">{formatHoras(tarefa.total_horas)}h</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
-                </div>
-              </div>
-            )}
-
-            {result.tarefas && result.tarefas.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Tarefas</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-primary-700/50">
-                        <th className="text-left px-3 py-2 text-xs text-gray-500">Tarefa</th>
-                        <th className="text-left px-3 py-2 text-xs text-gray-500">Projeto</th>
-                        <th className="text-right px-3 py-2 text-xs text-gray-500">Horas</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-primary-700/30">
-                      {result.tarefas.map((t, i) => (
-                        <tr key={t.tarefa_id || i}>
-                          <td className="px-3 py-2 text-gray-200">{t.titulo}</td>
-                          <td className="px-3 py-2 text-gray-400">{t.projeto_titulo || '—'}</td>
-                          <td className="px-3 py-2 text-right font-mono text-accent-green">{formatHoras(t.total_horas)}h</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             )}

@@ -19,12 +19,16 @@ def test_relatorio_generation(client, headers, created_cliente, created_projeto,
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["cliente_id"] == created_cliente["id"]
+    assert data["cliente"]["id"] == created_cliente["id"]
+    assert data["cliente"]["documento"] == created_cliente["documento"]
     assert data["mes_referencia"] == f"{mes:02d}/{ano}"
     assert len(data["projetos"]) >= 1
-    assert data["total_geral_horas"] == 4.0
+    assert data["projetos"][0]["titulo"] == created_projeto["titulo"]
+    assert data["totais"]["total_horas"] == 4.0
     valor_esperado = 4.0 * created_projeto["valor_por_hora"]
-    assert data["total_geral_valor"] == valor_esperado
+    assert data["totais"]["total_valor"] == valor_esperado
+    assert len(data["projetos"][0]["tarefas"]) == 1
+    assert data["projetos"][0]["tarefas"][0]["total_horas"] == 4.0
 
 
 def test_relatorio_cliente_not_found(client, headers):
@@ -34,6 +38,30 @@ def test_relatorio_cliente_not_found(client, headers):
         headers=headers,
     )
     assert response.status_code == 404
+
+
+def test_relatorio_mes_passado(client, headers, created_cliente, created_projeto, created_tarefa):
+    data_passada = date(2025, 5, 15)
+    apontamento_data = {
+        "tarefa_id": created_tarefa["id"],
+        "data": data_passada.isoformat(),
+        "hora_ini": "08:00",
+        "hora_fim": "12:00",
+    }
+    client.post("/api/v1/apontamentos", json=apontamento_data, headers=headers)
+
+    response = client.get(
+        f"/api/v1/relatorios?cliente_id={created_cliente['id']}&mes=5&ano=2025",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["cliente"]["id"] == created_cliente["id"]
+    assert data["totais"]["total_horas"] == 4.0
+    assert len(data["projetos"]) == 1
+    assert data["projetos"][0]["total_horas"] == 4.0
+    assert len(data["projetos"][0]["tarefas"]) == 1
+    assert data["projetos"][0]["tarefas"][0]["total_horas"] == 4.0
 
 
 def test_dashboard(client, headers, created_cliente, created_projeto, created_tarefa):

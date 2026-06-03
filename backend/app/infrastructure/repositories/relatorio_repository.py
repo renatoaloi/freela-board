@@ -50,6 +50,34 @@ class RelatorioRepository:
             .first()
         )
 
+    def get_tarefas_by_cliente_mes_ano(
+        self, cliente_id: str, mes: int, ano: int
+    ) -> list[dict]:
+        results = (
+            self.db.query(
+                TarefaModel.id.label("tarefa_id"),
+                TarefaModel.titulo.label("titulo"),
+                TarefaModel.projeto_id.label("projeto_id"),
+                func.sum(ApontamentoModel.total_horas).label("total_horas"),
+            )
+            .join(ApontamentoModel, ApontamentoModel.tarefa_id == TarefaModel.id)
+            .join(ProjetoModel, ProjetoModel.id == TarefaModel.projeto_id)
+            .filter(ProjetoModel.cliente_id == cliente_id)
+            .filter(func.strftime("%m", ApontamentoModel.data) == f"{mes:02d}")
+            .filter(func.strftime("%Y", ApontamentoModel.data) == str(ano))
+            .group_by(TarefaModel.id, TarefaModel.titulo, TarefaModel.projeto_id)
+            .all()
+        )
+        return [
+            {
+                "projeto_id": r.projeto_id,
+                "tarefa_id": r.tarefa_id,
+                "titulo": r.titulo,
+                "total_horas": float(r.total_horas),
+            }
+            for r in results
+        ]
+
     def get_tarefas_por_status(self) -> dict[str, int]:
         results = (
             self.db.query(

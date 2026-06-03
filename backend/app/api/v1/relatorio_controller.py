@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_api_key
+from app.domain.schemas import RelatorioResponse
 from app.application.services.relatorio_service import DashboardService, RelatorioService
 from app.infrastructure.repositories.relatorio_repository import RelatorioRepository
 
@@ -19,13 +20,13 @@ def get_dashboard_service(db: Session = Depends(get_db)) -> DashboardService:
     return DashboardService(repository)
 
 
-@router.get("/relatorios")
+@router.get("/relatorios", response_model=RelatorioResponse)
 def generate_relatorio(
     cliente_id: str = Query(...),
     mes: int = Query(...),
     ano: int = Query(...),
     service: RelatorioService = Depends(get_relatorio_service),
-):
+) -> RelatorioResponse:
     return service.generate(cliente_id, mes, ano)
 
 

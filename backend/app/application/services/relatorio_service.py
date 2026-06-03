@@ -1,5 +1,14 @@
+from collections import defaultdict
+
 from fastapi import HTTPException, status
 
+from app.domain.schemas import (
+    RelatorioClienteInfo,
+    RelatorioProjetoItem,
+    RelatorioResponse,
+    RelatorioTarefaItem,
+    RelatorioTotais,
+)
 from app.infrastructure.repositories.relatorio_repository import RelatorioRepository
 
 
@@ -7,7 +16,7 @@ class RelatorioService:
     def __init__(self, repository: RelatorioRepository):
         self.repository = repository
 
-    def generate(self, cliente_id: str, mes: int, ano: int):
+    def generate(self, cliente_id: str, mes: int, ano: int) -> RelatorioResponse:
         cliente = self.repository.get_cliente_info(cliente_id)
         if not cliente:
             raise HTTPException(
@@ -15,37 +24,62 @@ class RelatorioService:
                 detail="Cliente not found",
             )
 
-        projetos = self.repository.get_apontamentos_by_cliente_mes_ano(
+        tarefas_rows = self.repository.get_tarefas_by_cliente_mes_ano(
+            cliente_id, mes, ano
+        )
+        tarefas_por_projeto: dict[str, list[RelatorioTarefaItem]] = defaultdict(list)
+        for t in tarefas_rows:
+            tarefas_por_projeto[t["projeto_id"]].append(
+                RelatorioTarefaItem(
+                    tarefa_id=t["tarefa_id"],
+                    titulo=t["titulo"],
+                    total_horas=t["total_horas"],
+                )
+            )
+
+        projetos_rows = self.repository.get_apontamentos_by_cliente_mes_ano(
             cliente_id, mes, ano
         )
 
-        projetos_data = []
+        projetos: list[RelatorioProjetoItem] = []
         total_geral_horas = 0.0
         total_geral_valor = 0.0
 
-        for p in projetos:
-            valor_total = p["total_horas"] * p["valor_por_hora"]
-            projetos_data.append(
-                {
-                    "projeto_id": p["projeto_id"],
-                    "projeto_titulo": p["projeto_titulo"],
-                    "total_horas": p["total_horas"],
-                    "valor_por_hora": p["valor_por_hora"],
-                    "valor_total": round(valor_total, 2),
-                }
+        for p in projetos_rows:
+            valor_total = round(p["total_horas"] * p["valor_por_hora"], 2)
+            projetos.append(
+                RelatorioProjetoItem(
+                    projeto_id=p["projeto_id"],
+                    titulo=p["projeto_titulo"],
+                    valor_por_hora=p["valor_por_hora"],
+                    total_horas=p["total_horas"],
+                    valor_total=valor_total,
+                    tarefas=tarefas_por_projeto.get(p["projeto_id"], []),
+                )
             )
             total_geral_horas += p["total_horas"]
             total_geral_valor += valor_total
 
-        return {
-            "cliente_id": cliente.id,
-            "cliente_nome": cliente.nome,
-            "cliente_documento": cliente.documento,
-            "mes_referencia": f"{mes:02d}/{ano}",
-            "projetos": projetos_data,
-            "total_geral_horas": round(total_geral_horas, 2),
-            "total_geral_valor": round(total_geral_valor, 2),
-        }
+        return RelatorioResponse(
+            cliente=RelatorioClienteInfo(
+                id=cliente.id,
+                nome=cliente.nome,
+                razao_social=cliente.razao_social,
+                documento=cliente.documento,
+                email=cliente.email,
+                endereco=cliente.endereco,
+                complemento=cliente.complemento,
+                bairro=cliente.bairro,
+                cidade=cliente.cidade,
+                estado=cliente.estado,
+            ),
+            mes_referencia=f"{mes:02d}/{ano}",
+            totais=RelatorioTotais(
+                total_horas=round(total_geral_horas, 2),
+                total_valor=round(total_geral_valor, 2),
+            ),
+            projetos=projetos,
+        )
 
 
 class DashboardService:

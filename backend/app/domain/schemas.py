@@ -192,14 +192,44 @@ class ProjetoRelatorioItem(BaseModel):
     valor_total: float
 
 
+class RelatorioClienteInfo(BaseModel):
+    id: str
+    nome: str
+    razao_social: str
+    documento: str
+    email: str
+    endereco: str
+    complemento: Optional[str] = None
+    bairro: str
+    cidade: str
+    estado: str
+
+
+class RelatorioTarefaItem(BaseModel):
+    tarefa_id: str
+    titulo: str
+    total_horas: float
+
+
+class RelatorioProjetoItem(BaseModel):
+    projeto_id: str
+    titulo: str
+    valor_por_hora: float
+    total_horas: float
+    valor_total: float
+    tarefas: list[RelatorioTarefaItem] = Field(default_factory=list)
+
+
+class RelatorioTotais(BaseModel):
+    total_horas: float
+    total_valor: float
+
+
 class RelatorioResponse(BaseModel):
-    cliente_id: str
-    cliente_nome: str
-    cliente_documento: str
+    cliente: RelatorioClienteInfo
     mes_referencia: str
-    projetos: list[ProjetoRelatorioItem]
-    total_geral_horas: float
-    total_geral_valor: float
+    totais: RelatorioTotais
+    projetos: list[RelatorioProjetoItem]
 
 
 class HorasPorClienteMes(BaseModel):
