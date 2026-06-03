@@ -1,5 +1,14 @@
 from datetime import date
 
+import pytest
+
+
+try:
+    import weasyprint  # noqa: F401
+    HAS_WEASYPRINT = True
+except (ImportError, OSError):
+    HAS_WEASYPRINT = False
+
 
 def test_relatorio_generation(client, headers, created_cliente, created_projeto, created_tarefa):
     today = date.today()
@@ -82,3 +91,47 @@ def test_dashboard(client, headers, created_cliente, created_projeto, created_ta
     assert "melhores_clientes" in data
     assert "melhores_projetos" in data
     assert "ultimos_projetos" in data
+
+
+@pytest.mark.skipif(not HAS_WEASYPRINT, reason="WeasyPrint not available")
+def test_relatorio_pdf_endpoint(client, headers, created_cliente, created_projeto, created_tarefa):
+    today = date.today()
+    mes, ano = today.month, today.year
+
+    apontamento_data = {
+        "tarefa_id": created_tarefa["id"],
+        "data": today.isoformat(),
+        "hora_ini": "08:00",
+        "hora_fim": "12:00",
+    }
+    client.post("/api/v1/apontamentos", json=apontamento_data, headers=headers)
+
+    response = client.get(
+        f"/api/v1/relatorios/pdf?cliente_id={created_cliente['id']}&mes={mes}&ano={ano}",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.headers.get("content-type") == "application/pdf"
+    assert response.content.startswith(b"%PDF-")
+
+
+@pytest.mark.skipif(not HAS_WEASYPRINT, reason="WeasyPrint not available")
+def test_relatorio_pdf_cliente_not_found(client, headers):
+    today = date.today()
+    response = client.get(
+        f"/api/v1/relatorios/pdf?cliente_id=nonexistent&mes={today.month}&ano={today.year}",
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.skipif(not HAS_WEASYPRINT, reason="WeasyPrint not available")
+def test_relatorio_pdf_sem_apontamentos(client, headers, created_cliente):
+    today = date.today()
+    response = client.get(
+        f"/api/v1/relatorios/pdf?cliente_id={created_cliente['id']}&mes=1&ano=2000",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.headers.get("content-type") == "application/pdf"
+    assert response.content.startswith(b"%PDF-")

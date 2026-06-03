@@ -61,6 +61,8 @@ export const uploadAPI = {
 export const relatoriosAPI = {
   generate: (cliente_id, mes, ano) =>
     api.get('/relatorios', { params: { cliente_id, mes, ano } }),
+  generatePdf: (cliente_id, mes, ano) =>
+    api.get('/relatorios/pdf', { params: { cliente_id, mes, ano }, responseType: 'blob' }),
 };
 
 export const dashboardAPI = {

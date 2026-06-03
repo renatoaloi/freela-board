@@ -39,6 +39,7 @@ export default function RelatorioView() {
   const [selectedAno, setSelectedAno] = usePersistedState('relatorios.selectedAno', currentYear);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
@@ -66,6 +67,31 @@ export default function RelatorioView() {
       setError(err.response?.data?.detail || 'Erro ao gerar relatório.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!selectedCliente) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      const res = await relatoriosAPI.generatePdf(selectedCliente, selectedMes, selectedAno);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const disposition = res.headers?.['content-disposition'] || '';
+      const match = disposition.match(/filename="?(.+?)"?$/);
+      const filename = match?.[1] || `relatorio-${selectedMes}-${selectedAno}.pdf`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erro ao baixar PDF.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -141,13 +167,23 @@ export default function RelatorioView() {
           <div className="glass-card rounded-xl p-6 border border-primary-700/50">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Relatório de Horas</h2>
-              <button
-                onClick={() => window.print()}
-                className="btn-secondary flex items-center gap-2 text-sm"
-              >
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                Imprimir
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={downloading}
+                  className="btn-primary flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ArrowDownTrayIcon className="w-4 h-4" />
+                  {downloading ? 'Baixando...' : 'Baixar PDF'}
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="btn-secondary flex items-center gap-2 text-sm"
+                >
+                  <ArrowDownTrayIcon className="w-4 h-4" />
+                  Imprimir
+                </button>
+              </div>
             </div>
             <p className="text-sm text-accent-cyan mb-4">
               Período: {mesLabel} / {selectedAno}
