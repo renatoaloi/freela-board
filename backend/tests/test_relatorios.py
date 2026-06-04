@@ -40,6 +40,61 @@ def test_relatorio_generation(client, headers, created_cliente, created_projeto,
     assert data["projetos"][0]["tarefas"][0]["total_horas"] == 4.0
 
 
+def test_relatorio_inclui_dados_bancarios(
+    client, headers, created_cliente, created_projeto, created_tarefa
+):
+    today = date.today()
+    mes, ano = today.month, today.year
+
+    apontamento_data = {
+        "tarefa_id": created_tarefa["id"],
+        "data": today.isoformat(),
+        "hora_ini": "08:00",
+        "hora_fim": "12:00",
+    }
+    client.post("/api/v1/apontamentos", json=apontamento_data, headers=headers)
+
+    client.put(
+        "/api/v1/dados-bancarios",
+        json={"banco_nome": "Nubank", "chave_pix": "123.456.789-00", "tipo_chave_pix": "cpf"},
+        headers=headers,
+    )
+
+    response = client.get(
+        f"/api/v1/relatorios?cliente_id={created_cliente['id']}&mes={mes}&ano={ano}",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["dados_bancarios"] is not None
+    assert data["dados_bancarios"]["banco_nome"] == "Nubank"
+    assert data["dados_bancarios"]["chave_pix"] == "123.456.789-00"
+    assert data["dados_bancarios"]["tipo_chave_pix"] == "cpf"
+
+
+def test_relatorio_dados_bancarios_sem_preenchimento(
+    client, headers, created_cliente, created_projeto, created_tarefa
+):
+    today = date.today()
+    mes, ano = today.month, today.year
+
+    apontamento_data = {
+        "tarefa_id": created_tarefa["id"],
+        "data": today.isoformat(),
+        "hora_ini": "08:00",
+        "hora_fim": "12:00",
+    }
+    client.post("/api/v1/apontamentos", json=apontamento_data, headers=headers)
+
+    response = client.get(
+        f"/api/v1/relatorios?cliente_id={created_cliente['id']}&mes={mes}&ano={ano}",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["dados_bancarios"] is None
+
+
 def test_relatorio_cliente_not_found(client, headers):
     today = date.today()
     response = client.get(

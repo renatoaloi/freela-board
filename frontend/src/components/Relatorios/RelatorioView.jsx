@@ -216,16 +216,35 @@ export default function RelatorioView() {
                   <p className="text-xs text-gray-500 mt-1">{result.cliente.email}</p>
                 )}
               </div>
-              <div className="bg-primary-800/50 rounded-lg p-4 border border-primary-700/50">
-                <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Resumo</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-400">Total de Horas</span>
-                    <span className="text-sm font-mono text-accent-green font-medium">{formatHoras(result.totais?.total_horas)}h</span>
+              <div>
+                {result.dados_bancarios && (result.dados_bancarios.banco_nome || result.dados_bancarios.banco_numero || result.dados_bancarios.agencia || result.dados_bancarios.conta || result.dados_bancarios.chave_pix) && (
+                  <div className="bg-primary-800/50 rounded-lg p-4 border border-primary-700/50 mb-4">
+                    <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Dados Bancários</h3>
+                    {result.dados_bancarios.banco_nome && (
+                      <p className="text-sm text-white">{result.dados_bancarios.banco_nome}{result.dados_bancarios.banco_numero ? ` (${result.dados_bancarios.banco_numero})` : ''}</p>
+                    )}
+                    {result.dados_bancarios.agencia && (
+                      <p className="text-xs text-gray-400 mt-1">Agência: {result.dados_bancarios.agencia}</p>
+                    )}
+                    {result.dados_bancarios.conta && (
+                      <p className="text-xs text-gray-400">Conta: {result.dados_bancarios.conta}</p>
+                    )}
+                    {result.dados_bancarios.chave_pix && (
+                      <p className="text-xs text-gray-400 mt-1">PIX: {result.dados_bancarios.chave_pix}{result.dados_bancarios.tipo_chave_pix ? ` (${result.dados_bancarios.tipo_chave_pix.toUpperCase()})` : ''}</p>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-400">Valor Total</span>
-                    <span className="text-sm font-mono text-accent-pinkLight font-bold">{formatMoeda(result.totais?.total_valor)}</span>
+                )}
+                <div className="bg-primary-800/50 rounded-lg p-4 border border-primary-700/50">
+                  <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Resumo</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-400">Total de Horas</span>
+                      <span className="text-sm font-mono text-accent-green font-medium">{formatHoras(result.totais?.total_horas)}h</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-400">Valor Total</span>
+                      <span className="text-sm font-mono text-accent-pinkLight font-bold">{formatMoeda(result.totais?.total_valor)}</span>
+                    </div>
                   </div>
                 </div>
               </div>

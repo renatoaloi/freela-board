@@ -6,3 +6,10 @@ class TarefaStatus(str, Enum):
     EM_ANDAMENTO = "em_andamento"
     PRONTA = "pronta"
     FECHADA = "fechada"
+
+
+class PixKeyType(str, Enum):
+    CPF = "cpf"
+    CNPJ = "cnpj"
+    EMAIL = "email"
+    TELEFONE = "telefone"

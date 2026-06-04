@@ -65,6 +65,11 @@ export const relatoriosAPI = {
     api.get('/relatorios/pdf', { params: { cliente_id, mes, ano }, responseType: 'blob' }),
 };
 
+export const dadosBancariosAPI = {
+  get: () => api.get('/dados-bancarios'),
+  update: (data) => api.put('/dados-bancarios', data),
+};
+
 export const dashboardAPI = {
   get: () => api.get('/dashboard'),
 };

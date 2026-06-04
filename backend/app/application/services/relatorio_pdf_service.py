@@ -64,6 +64,20 @@ def _build_context(data: RelatorioResponse) -> dict[str, Any]:
             }
         )
 
+    dados_bancarios = data.dados_bancarios
+    tem_dados_bancarios = bool(
+        dados_bancarios
+        and any(
+            [
+                dados_bancarios.banco_nome,
+                dados_bancarios.banco_numero,
+                dados_bancarios.agencia,
+                dados_bancarios.conta,
+                dados_bancarios.chave_pix,
+            ]
+        )
+    )
+
     return {
         "mes_referencia": data.mes_referencia,
         "cliente": {
@@ -78,6 +92,15 @@ def _build_context(data: RelatorioResponse) -> dict[str, Any]:
             "cep": cliente.cep,
             "email": cliente.email,
         },
+        "dados_bancarios": {
+            "banco_nome": dados_bancarios.banco_nome if dados_bancarios else "",
+            "banco_numero": dados_bancarios.banco_numero if dados_bancarios else "",
+            "agencia": dados_bancarios.agencia if dados_bancarios else "",
+            "conta": dados_bancarios.conta if dados_bancarios else "",
+            "chave_pix": dados_bancarios.chave_pix if dados_bancarios else "",
+            "tipo_chave_pix": dados_bancarios.tipo_chave_pix if dados_bancarios else "",
+        },
+        "tem_dados_bancarios": tem_dados_bancarios,
         "totais": {
             "total_horas": _fmt_horas(totais.total_horas),
             "total_valor": _fmt_moeda(totais.total_valor),

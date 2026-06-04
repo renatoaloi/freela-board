@@ -7,6 +7,7 @@ import ProjetosList from './components/Projetos/ProjetosList';
 import Kanban from './components/Kanban/Kanban';
 import TarefaDetail from './components/Tarefas/TarefaDetail';
 import RelatorioView from './components/Relatorios/RelatorioView';
+import Configuracoes from './components/Configuracoes/Configuracoes';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="kanban" element={<Kanban />} />
         <Route path="tarefas/:id" element={<TarefaDetail />} />
         <Route path="relatorios" element={<RelatorioView />} />
+        <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
     </Routes>
   );

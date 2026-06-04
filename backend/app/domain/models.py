@@ -106,3 +106,23 @@ class ApontamentoModel(Base):
     )
 
     tarefa = relationship("TarefaModel", back_populates="apontamentos")
+
+
+class DadosBancariosModel(Base):
+    __tablename__ = "dados_bancarios"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    banco_nome: Mapped[str] = mapped_column(String(255), nullable=True)
+    banco_numero: Mapped[str] = mapped_column(String(20), nullable=True)
+    agencia: Mapped[str] = mapped_column(String(20), nullable=True)
+    conta: Mapped[str] = mapped_column(String(30), nullable=True)
+    chave_pix: Mapped[str] = mapped_column(String(255), nullable=True)
+    tipo_chave_pix: Mapped[str] = mapped_column(String(20), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )

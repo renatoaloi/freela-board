@@ -117,3 +117,9 @@ def created_apontamento(client, headers, sample_apontamento_data):
         "/api/v1/apontamentos", json=sample_apontamento_data, headers=headers
     )
     return response.json()
+
+
+@pytest.fixture
+def created_dados_bancarios(client, headers):
+    response = client.get("/api/v1/dados-bancarios", headers=headers)
+    return response.json()

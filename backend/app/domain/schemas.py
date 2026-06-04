@@ -5,7 +5,7 @@ from typing import Any, Optional
 from pydantic import field_validator, model_validator
 from pydantic import BaseModel, Field
 
-from app.domain.enums import TarefaStatus
+from app.domain.enums import PixKeyType, TarefaStatus
 
 
 def validate_hhmm(v: str) -> str:
@@ -248,11 +248,44 @@ class RelatorioTotais(BaseModel):
     total_valor: float
 
 
+class RelatorioDadosBancariosInfo(BaseModel):
+    banco_nome: Optional[str] = None
+    banco_numero: Optional[str] = None
+    agencia: Optional[str] = None
+    conta: Optional[str] = None
+    chave_pix: Optional[str] = None
+    tipo_chave_pix: Optional[str] = None
+
+
 class RelatorioResponse(BaseModel):
     cliente: RelatorioClienteInfo
     mes_referencia: str
     totais: RelatorioTotais
     projetos: list[RelatorioProjetoItem]
+    dados_bancarios: Optional[RelatorioDadosBancariosInfo] = None
+
+
+class DadosBancariosUpdate(BaseModel):
+    banco_nome: Optional[str] = Field(None, max_length=255)
+    banco_numero: Optional[str] = Field(None, max_length=20)
+    agencia: Optional[str] = Field(None, max_length=20)
+    conta: Optional[str] = Field(None, max_length=30)
+    chave_pix: Optional[str] = Field(None, max_length=255)
+    tipo_chave_pix: Optional[PixKeyType] = None
+
+
+class DadosBancariosResponse(BaseModel):
+    id: str
+    banco_nome: Optional[str] = None
+    banco_numero: Optional[str] = None
+    agencia: Optional[str] = None
+    conta: Optional[str] = None
+    chave_pix: Optional[str] = None
+    tipo_chave_pix: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class HorasPorClienteMes(BaseModel):

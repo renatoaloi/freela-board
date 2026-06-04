@@ -1,20 +1,31 @@
+from typing import Optional
+
 from collections import defaultdict
 
 from fastapi import HTTPException, status
 
 from app.domain.schemas import (
     RelatorioClienteInfo,
+    RelatorioDadosBancariosInfo,
     RelatorioProjetoItem,
     RelatorioResponse,
     RelatorioTarefaItem,
     RelatorioTotais,
 )
+from app.infrastructure.repositories.dados_bancarios_repository import (
+    DadosBancariosRepository,
+)
 from app.infrastructure.repositories.relatorio_repository import RelatorioRepository
 
 
 class RelatorioService:
-    def __init__(self, repository: RelatorioRepository):
+    def __init__(
+        self,
+        repository: RelatorioRepository,
+        dados_bancarios_repository: DadosBancariosRepository,
+    ):
         self.repository = repository
+        self.dados_bancarios_repository = dados_bancarios_repository
 
     def generate(self, cliente_id: str, mes: int, ano: int) -> RelatorioResponse:
         cliente = self.repository.get_cliente_info(cliente_id)
@@ -80,6 +91,22 @@ class RelatorioService:
                 total_valor=round(total_geral_valor, 2),
             ),
             projetos=projetos,
+            dados_bancarios=self._build_dados_bancarios(),
+        )
+
+    def _build_dados_bancarios(self) -> Optional[RelatorioDadosBancariosInfo]:
+        obj = self.dados_bancarios_repository.get_or_create()
+        if not any(
+            [obj.banco_nome, obj.banco_numero, obj.agencia, obj.conta, obj.chave_pix]
+        ):
+            return None
+        return RelatorioDadosBancariosInfo(
+            banco_nome=obj.banco_nome,
+            banco_numero=obj.banco_numero,
+            agencia=obj.agencia,
+            conta=obj.conta,
+            chave_pix=obj.chave_pix,
+            tipo_chave_pix=obj.tipo_chave_pix,
         )
 
 

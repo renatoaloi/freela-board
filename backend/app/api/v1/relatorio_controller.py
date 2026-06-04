@@ -6,6 +6,9 @@ from app.core.dependencies import get_api_key
 from app.domain.schemas import RelatorioResponse
 from app.application.services.relatorio_service import DashboardService, RelatorioService
 from app.application.services.relatorio_pdf_service import RelatorioPdfService
+from app.infrastructure.repositories.dados_bancarios_repository import (
+    DadosBancariosRepository,
+)
 from app.infrastructure.repositories.relatorio_repository import RelatorioRepository
 
 router = APIRouter(tags=["relatorios"], dependencies=[Depends(get_api_key)])
@@ -13,7 +16,8 @@ router = APIRouter(tags=["relatorios"], dependencies=[Depends(get_api_key)])
 
 def get_relatorio_service(db: Session = Depends(get_db)) -> RelatorioService:
     repository = RelatorioRepository(db)
-    return RelatorioService(repository)
+    dados_bancarios_repository = DadosBancariosRepository(db)
+    return RelatorioService(repository, dados_bancarios_repository)
 
 
 def get_dashboard_service(db: Session = Depends(get_db)) -> DashboardService:
