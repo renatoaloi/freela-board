@@ -22,6 +22,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_KEY: ${VITE_API_KEY:-freela-secret-key-2024}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
     container_name: freelaboard-frontend
     ports:
       - "8080:80"

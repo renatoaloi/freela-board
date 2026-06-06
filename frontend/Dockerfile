@@ -1,5 +1,8 @@
 FROM node:18-alpine AS build
 
+ARG VITE_API_KEY
+ARG VITE_API_BASE_URL
+
 WORKDIR /app
 
 COPY package.json package-lock.json ./
