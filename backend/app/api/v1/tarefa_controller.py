@@ -28,9 +28,11 @@ def create_tarefa(data: TarefaCreate, service: TarefaService = Depends(get_taref
 def list_tarefas(
     projeto_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    mes: Optional[int] = Query(None, ge=1, le=12),
+    ano: Optional[int] = Query(None, ge=1900, le=9999),
     service: TarefaService = Depends(get_tarefa_service),
 ):
-    return service.list_all(projeto_id=projeto_id, status=status)
+    return service.list_all(projeto_id=projeto_id, status=status, mes=mes, ano=ano)
 
 
 @router.get("/{id}", response_model=TarefaResponse)

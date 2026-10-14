@@ -258,11 +258,39 @@ class RelatorioDadosBancariosInfo(BaseModel):
 
 
 class RelatorioResponse(BaseModel):
+    id: str
     cliente: RelatorioClienteInfo
     mes_referencia: str
     totais: RelatorioTotais
     projetos: list[RelatorioProjetoItem]
     dados_bancarios: Optional[RelatorioDadosBancariosInfo] = None
+
+
+class RelatorioResumo(BaseModel):
+    id: str
+    cliente_id: str
+    cliente_nome: str
+    mes: int
+    ano: int
+    total_horas: float
+    total_valor: float
+    data_fechamento: datetime
+
+
+class FechamentoCreate(BaseModel):
+    cliente_id: str
+    mes: int = Field(..., ge=1, le=12)
+    ano: int = Field(..., ge=1900, le=9999)
+    tarefa_ids: list[str] = Field(..., min_length=1)
+
+
+class FechamentoTarefaDisponivel(BaseModel):
+    tarefa_id: str
+    titulo: str
+    projeto_id: str
+    projeto_titulo: str
+    status: str
+    total_horas_periodo: float
 
 
 class DadosBancariosUpdate(BaseModel):

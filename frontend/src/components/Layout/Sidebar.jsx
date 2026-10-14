@@ -6,6 +6,7 @@ import {
   UsersIcon,
   FolderIcon,
   ViewColumnsIcon,
+  LockClosedIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/clientes', icon: UsersIcon, label: 'Clientes' },
   { to: '/projetos', icon: FolderIcon, label: 'Projetos' },
   { to: '/kanban', icon: ViewColumnsIcon, label: 'Kanban' },
+  { to: '/fechamento', icon: LockClosedIcon, label: 'Fechamento' },
   { to: '/configuracoes', icon: Cog6ToothIcon, label: 'Configurações' },
   { to: '/relatorios', icon: DocumentTextIcon, label: 'Relatórios' },
 ];

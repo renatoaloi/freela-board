@@ -39,8 +39,12 @@ class TarefaService:
         self,
         projeto_id: Optional[str] = None,
         status: Optional[str] = None,
+        mes: Optional[int] = None,
+        ano: Optional[int] = None,
     ):
-        return self.repository.list_all_filtered(projeto_id=projeto_id, status=status)
+        return self.repository.list_all_filtered(
+            projeto_id=projeto_id, status=status, mes=mes, ano=ano
+        )
 
     def update(self, id: str, data: TarefaUpdate):
         obj = self.repository.get_by_id(id)

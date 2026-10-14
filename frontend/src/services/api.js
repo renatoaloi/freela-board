@@ -59,10 +59,19 @@ export const uploadAPI = {
 };
 
 export const relatoriosAPI = {
-  generate: (cliente_id, mes, ano) =>
-    api.get('/relatorios', { params: { cliente_id, mes, ano } }),
-  generatePdf: (cliente_id, mes, ano) =>
-    api.get('/relatorios/pdf', { params: { cliente_id, mes, ano }, responseType: 'blob' }),
+  list: () => api.get('/relatorios'),
+  get: (id) => api.get(`/relatorios/${id}`),
+  downloadPdf: (id) =>
+    api.get(`/relatorios/${id}/pdf`, { responseType: 'blob' }),
+};
+
+export const fechamentoAPI = {
+  tarefasElegiveis: (cliente_id, mes, ano, projeto_id) => {
+    const params = { cliente_id, mes, ano };
+    if (projeto_id) params.projeto_id = projeto_id;
+    return api.get('/fechamentos/tarefas-elegiveis', { params });
+  },
+  fechar: (data) => api.post('/fechamentos', data),
 };
 
 export const dadosBancariosAPI = {

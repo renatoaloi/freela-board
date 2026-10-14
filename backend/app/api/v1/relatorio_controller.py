@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, Query, Response
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_api_key
-from app.domain.schemas import RelatorioResponse
+from app.domain.schemas import (
+    FechamentoCreate,
+    FechamentoTarefaDisponivel,
+    RelatorioResumo,
+    RelatorioResponse,
+)
 from app.application.services.relatorio_service import DashboardService, RelatorioService
 from app.application.services.relatorio_pdf_service import RelatorioPdfService
 from app.infrastructure.repositories.dados_bancarios_repository import (
@@ -29,25 +36,47 @@ def get_relatorio_pdf_service() -> RelatorioPdfService:
     return RelatorioPdfService()
 
 
-@router.get("/relatorios", response_model=RelatorioResponse)
-def generate_relatorio(
-    cliente_id: str = Query(...),
-    mes: int = Query(...),
-    ano: int = Query(...),
+@router.get(
+    "/fechamentos/tarefas-elegiveis", response_model=list[FechamentoTarefaDisponivel]
+)
+def list_tarefas_elegiveis(
+    cliente_id: str,
+    mes: int,
+    ano: int,
+    projeto_id: Optional[str] = None,
     service: RelatorioService = Depends(get_relatorio_service),
-) -> RelatorioResponse:
-    return service.generate(cliente_id, mes, ano)
+):
+    return service.tarefas_elegiveis(cliente_id, mes, ano, projeto_id)
 
 
-@router.get("/relatorios/pdf")
-def generate_relatorio_pdf(
-    cliente_id: str = Query(...),
-    mes: int = Query(...),
-    ano: int = Query(...),
-    relatorio_service: RelatorioService = Depends(get_relatorio_service),
+@router.post("/fechamentos", response_model=RelatorioResponse, status_code=201)
+def fechar_mes(
+    data: FechamentoCreate,
+    service: RelatorioService = Depends(get_relatorio_service),
+):
+    return service.fechar(data)
+
+
+@router.get("/relatorios", response_model=list[RelatorioResumo])
+def list_relatorios(service: RelatorioService = Depends(get_relatorio_service)):
+    return service.listar()
+
+
+@router.get("/relatorios/{id}", response_model=RelatorioResponse)
+def get_relatorio(
+    id: str,
+    service: RelatorioService = Depends(get_relatorio_service),
+):
+    return service.obter(id)
+
+
+@router.get("/relatorios/{id}/pdf")
+def get_relatorio_pdf(
+    id: str,
+    service: RelatorioService = Depends(get_relatorio_service),
     pdf_service: RelatorioPdfService = Depends(get_relatorio_pdf_service),
 ):
-    data = relatorio_service.generate(cliente_id, mes, ano)
+    data = service.obter(id)
     pdf_bytes = pdf_service.generate(data)
     filename = pdf_service.filename(data)
     return Response(

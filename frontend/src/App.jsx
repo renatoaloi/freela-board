@@ -6,7 +6,9 @@ import ClientesList from './components/Clientes/ClientesList';
 import ProjetosList from './components/Projetos/ProjetosList';
 import Kanban from './components/Kanban/Kanban';
 import TarefaDetail from './components/Tarefas/TarefaDetail';
+import RelatoriosList from './components/Relatorios/RelatoriosList';
 import RelatorioView from './components/Relatorios/RelatorioView';
+import FechamentoMensal from './components/Fechamento/FechamentoMensal';
 import Configuracoes from './components/Configuracoes/Configuracoes';
 
 export default function App() {
@@ -18,7 +20,9 @@ export default function App() {
         <Route path="projetos" element={<ProjetosList />} />
         <Route path="kanban" element={<Kanban />} />
         <Route path="tarefas/:id" element={<TarefaDetail />} />
-        <Route path="relatorios" element={<RelatorioView />} />
+        <Route path="relatorios" element={<RelatoriosList />} />
+        <Route path="relatorios/:id" element={<RelatorioView />} />
+        <Route path="fechamento" element={<FechamentoMensal />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
     </Routes>

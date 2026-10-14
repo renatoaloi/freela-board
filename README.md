@@ -10,7 +10,8 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 - **Kanban** — Quadro visual com colunas Nova → Em andamento → Pronta → Fechada, filtrável por cliente e projeto
 - **Tarefas** — Gerenciamento com descrição markdown, upload de anexos (PDFs, imagens) e lançamento de horas
 - **Apontamentos** — Registro de múltiplos períodos de hora início/fim por tarefa, com total de horas calculado automaticamente
-- **Relatórios** — Geração mensal por cliente com memória de cálculo por projeto, total de horas e valor total
+- **Relatórios** — Listagem dos relatórios já fechados, com visualização do detalhe (memória de cálculo por projeto, total de horas e valor total) e download do PDF
+- **Fechamento mensal** — Escolha de cliente, mês/ano (e opcionalmente projeto) e seleção das tarefas prontas que entram no relatório; ao fechar, o relatório fica gravado com os totais congelados e as tarefas selecionadas vão para o status Fechada
 
 ## Regras de Negócio
 
@@ -19,7 +20,10 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 - CNPJ deve ter 14 dígitos — validado no servidor
 - Duplicidade de CNPJ retorna erro 409
 - Total de horas calculado automaticamente no backend (hora fim - hora início)
-- Relatório gerado sob demanda (não é persistido)
+- Relatório gerado a partir do fechamento do mês e gravado como snapshot (não é recalculado depois)
+- Só entram no fechamento tarefas com status `pronta` que tenham apontamentos no mês/ano escolhidos; cada cliente admite um relatório por competência
+- Após o fechamento, as tarefas selecionadas passam para o status `fechada` e saem do fluxo do Kanban
+- O filtro de mês/ano do Kanban considera a data dos apontamentos da tarefa
 - Upload de arquivos organizado em pastas `storage/{cliente_id}/{projeto_id}/{tarefa_id}/`
 
 ## Entidades
@@ -30,7 +34,8 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 | **Projeto** | id (UUID), cliente_id, titulo, descricao, data_criacao, valor_por_hora |
 | **Tarefa** | id (UUID), projeto_id, titulo, descricao, status (nova/em_andamento/pronta/fechada), data_criacao, anexos (JSON) |
 | **Apontamento** | id (UUID), tarefa_id, data, hora_ini, hora_fim, total_horas |
-| **Relatório** | gerado on-the-fly: dados do cliente, horas por projeto × valor_por_hora, total geral |
+| **Relatório** | id (UUID), cliente_id, mes, ano, total_horas, total_valor, data_fechamento, dados (snapshot JSON com cliente, dados bancários e projetos/tarefas) |
+| **RelatórioTarefa** | id (UUID), relatorio_id, tarefa_id (vínculo das tarefas que compõem o relatório) |
 
 ## Tecnologias
 
@@ -167,7 +172,7 @@ Todos sob o prefixo `/api/v1`:
 | `PUT` | `/projetos/{id}` | Atualizar |
 | `DELETE` | `/projetos/{id}` | Remover |
 | **Tarefas** | | |
-| `GET` | `/tarefas` | Listar (filtros: `?projeto_id=&status=`) |
+| `GET` | `/tarefas` | Listar (filtros: `?projeto_id=&status=&mes=&ano=`) |
 | `GET` | `/tarefas/{id}` | Obter por ID |
 | `POST` | `/tarefas` | Criar |
 | `PUT` | `/tarefas/{id}` | Atualizar (inclui status) |
@@ -182,7 +187,12 @@ Todos sob o prefixo `/api/v1`:
 | `GET` | `/upload/{tarefa_id}/{filename}` | Baixar arquivo |
 | `DELETE` | `/upload/{tarefa_id}/{filename}` | Remover arquivo |
 | **Relatórios** | | |
-| `GET` | `/relatorios` | Gerar (`?cliente_id=&mes=MM&ano=YYYY`) |
+| `GET` | `/relatorios` | Listar relatórios fechados |
+| `GET` | `/relatorios/{id}` | Obter o relatório fechado (snapshot) |
+| `GET` | `/relatorios/{id}/pdf` | Baixar PDF do relatório fechado |
+| **Fechamento mensal** | | |
+| `GET` | `/fechamentos/tarefas-elegiveis` | Listar tarefas prontas do período aptas a fechamento (`?cliente_id=&mes=&ano=&projeto_id=`) |
+| `POST` | `/fechamentos` | Fechar o mês (body: `cliente_id`, `mes`, `ano`, `tarefa_ids`) |
 
 ## Testes
 

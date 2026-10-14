@@ -2,6 +2,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -106,6 +107,61 @@ class ApontamentoModel(Base):
     )
 
     tarefa = relationship("TarefaModel", back_populates="apontamentos")
+
+
+class RelatorioModel(Base):
+    __tablename__ = "relatorios"
+    __table_args__ = (
+        UniqueConstraint("cliente_id", "mes", "ano", name="uq_relatorio_competencia"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    cliente_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("clientes.id"), nullable=False, index=True
+    )
+    mes: Mapped[int] = mapped_column(Integer, nullable=False)
+    ano: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_horas: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    total_valor: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    data_fechamento: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now
+    )
+    dados: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    cliente = relationship("ClienteModel")
+    tarefas = relationship(
+        "RelatorioTarefaModel", back_populates="relatorio", cascade="all, delete-orphan"
+    )
+
+
+class RelatorioTarefaModel(Base):
+    __tablename__ = "relatorio_tarefas"
+    __table_args__ = (
+        UniqueConstraint("relatorio_id", "tarefa_id", name="uq_relatorio_tarefa"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    relatorio_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("relatorios.id"), nullable=False, index=True
+    )
+    tarefa_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("tarefas.id"), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )
+
+    relatorio = relationship("RelatorioModel", back_populates="tarefas")
 
 
 class DadosBancariosModel(Base):

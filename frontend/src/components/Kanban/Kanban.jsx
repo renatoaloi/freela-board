@@ -11,6 +11,24 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 
 const statusList = ['nova', 'em_andamento', 'pronta', 'fechada'];
 
+const meses = [
+  { value: 1, label: 'Janeiro' },
+  { value: 2, label: 'Fevereiro' },
+  { value: 3, label: 'Março' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Maio' },
+  { value: 6, label: 'Junho' },
+  { value: 7, label: 'Julho' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Setembro' },
+  { value: 10, label: 'Outubro' },
+  { value: 11, label: 'Novembro' },
+  { value: 12, label: 'Dezembro' },
+];
+
+const currentYear = new Date().getFullYear();
+const anos = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
 export default function Kanban() {
   const [searchParams] = useSearchParams();
   const [clientes, setClientes] = useState([]);
@@ -20,6 +38,8 @@ export default function Kanban() {
   const [error, setError] = useState(null);
   const [selectedCliente, setSelectedCliente] = usePersistedState('kanban.selectedCliente', '');
   const [selectedProjeto, setSelectedProjeto] = usePersistedState('kanban.selectedProjeto', '');
+  const [selectedMes, setSelectedMes] = usePersistedState('kanban.mes', new Date().getMonth() + 1);
+  const [selectedAno, setSelectedAno] = usePersistedState('kanban.ano', new Date().getFullYear());
   const [formOpen, setFormOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('nova');
   const [alertMsg, setAlertMsg] = useState(null);
@@ -61,14 +81,18 @@ export default function Kanban() {
     }
     setLoading(true);
     try {
-      const res = await tarefasAPI.list({ projeto_id: selectedProjeto });
+      const res = await tarefasAPI.list({
+        projeto_id: selectedProjeto,
+        mes: selectedMes,
+        ano: selectedAno,
+      });
       setTarefas(res.data || []);
     } catch {
       setError('Erro ao carregar tarefas.');
     } finally {
       setLoading(false);
     }
-  }, [selectedProjeto]);
+  }, [selectedProjeto, selectedMes, selectedAno]);
 
   useEffect(() => { fetchClientes(); }, [fetchClientes]);
   useEffect(() => { fetchProjetos(); }, [fetchProjetos]);
@@ -174,7 +198,31 @@ export default function Kanban() {
                 loading={loading}
               />
             ))}
-          </div>
+        <div className="w-full sm:w-40">
+          <label className="block text-xs font-medium text-gray-400 mb-1.5">Mês</label>
+          <select
+            value={selectedMes}
+            onChange={(e) => setSelectedMes(Number(e.target.value))}
+            className="input-field"
+          >
+            {meses.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full sm:w-32">
+          <label className="block text-xs font-medium text-gray-400 mb-1.5">Ano</label>
+          <select
+            value={selectedAno}
+            onChange={(e) => setSelectedAno(Number(e.target.value))}
+            className="input-field"
+          >
+            {anos.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+      </div>
         </DragDropContext>
       )}
 

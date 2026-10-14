@@ -1,13 +1,19 @@
+import uuid
 from typing import Optional
 
 from collections import defaultdict
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
+from app.domain.enums import TarefaStatus
 from app.domain.schemas import (
+    FechamentoCreate,
+    FechamentoTarefaDisponivel,
     RelatorioClienteInfo,
     RelatorioDadosBancariosInfo,
     RelatorioProjetoItem,
+    RelatorioResumo,
     RelatorioResponse,
     RelatorioTarefaItem,
     RelatorioTotais,
@@ -26,52 +32,121 @@ class RelatorioService:
     ):
         self.repository = repository
         self.dados_bancarios_repository = dados_bancarios_repository
+        self.db = repository.db
 
-    def generate(self, cliente_id: str, mes: int, ano: int) -> RelatorioResponse:
-        cliente = self.repository.get_cliente_info(cliente_id)
+    def fechar(self, data: FechamentoCreate) -> RelatorioResponse:
+        cliente = self.repository.get_cliente_info(data.cliente_id)
         if not cliente:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Cliente not found",
             )
 
-        tarefas_rows = self.repository.get_tarefas_by_cliente_mes_ano(
-            cliente_id, mes, ano
-        )
-        tarefas_por_projeto: dict[str, list[RelatorioTarefaItem]] = defaultdict(list)
-        for t in tarefas_rows:
-            tarefas_por_projeto[t["projeto_id"]].append(
-                RelatorioTarefaItem(
-                    tarefa_id=t["tarefa_id"],
-                    titulo=t["titulo"],
-                    total_horas=t["total_horas"],
-                )
+        ids_selecionados = list(dict.fromkeys(data.tarefa_ids))
+        if not ids_selecionados:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Selecione ao menos uma tarefa para o fechamento",
             )
 
-        projetos_rows = self.repository.get_apontamentos_by_cliente_mes_ano(
-            cliente_id, mes, ano
+        if self.repository.get_relatorio_by_competencia(
+            data.cliente_id, data.mes, data.ano
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe relatório fechado para este cliente neste mês/ano",
+            )
+
+        elegiveis = self.repository.get_tarefas_elegiveis_fechamento(
+            data.cliente_id, data.mes, data.ano
         )
+        elegiveis_por_id = {t["tarefa_id"]: t for t in elegiveis}
+        vinculadas = self.repository.tarefas_vinculadas(ids_selecionados)
+        invalidas = [
+            t for t in ids_selecionados if t not in elegiveis_por_id or t in vinculadas
+        ]
+        if invalidas:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Tarefas não elegíveis para o fechamento: {', '.join(invalidas)}",
+            )
+
+        relatorio = self._build_snapshot(cliente, data, ids_selecionados, elegiveis_por_id)
+        tarefas = self.repository.get_tarefas_by_ids(ids_selecionados)
+
+        try:
+            self.repository.create_relatorio(
+                relatorio_id=relatorio.id,
+                cliente_id=cliente.id,
+                mes=data.mes,
+                ano=data.ano,
+                total_horas=relatorio.totais.total_horas,
+                total_valor=relatorio.totais.total_valor,
+                dados=relatorio.model_dump(mode="json"),
+            )
+            self.repository.add_tarefas_relatorio(relatorio.id, ids_selecionados)
+            for tarefa in tarefas:
+                tarefa.status = TarefaStatus.FECHADA.value
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe relatório fechado para este cliente neste mês/ano",
+            )
+
+        return relatorio
+
+    def _build_snapshot(
+        self,
+        cliente,
+        data: FechamentoCreate,
+        ids_selecionados: list[str],
+        elegiveis_por_id: dict[str, dict],
+    ) -> RelatorioResponse:
+        tarefas = self.repository.get_tarefas_by_ids(ids_selecionados)
+        tarefas.sort(key=lambda t: ids_selecionados.index(t.id))
+        projetos_info = {
+            p.id: p
+            for p in self.repository.get_projetos_by_ids(
+                list({t.projeto_id for t in tarefas})
+            )
+        }
+
+        tarefas_por_projeto: dict[str, list[RelatorioTarefaItem]] = defaultdict(list)
+        for tarefa in tarefas:
+            tarefas_por_projeto[tarefa.projeto_id].append(
+                RelatorioTarefaItem(
+                    tarefa_id=tarefa.id,
+                    titulo=tarefa.titulo,
+                    total_horas=elegiveis_por_id[tarefa.id]["total_horas"],
+                )
+            )
 
         projetos: list[RelatorioProjetoItem] = []
         total_geral_horas = 0.0
         total_geral_valor = 0.0
-
-        for p in projetos_rows:
-            valor_total = round(p["total_horas"] * p["valor_por_hora"], 2)
+        for projeto_id, tarefas_projeto in tarefas_por_projeto.items():
+            projeto = projetos_info.get(projeto_id)
+            if not projeto:
+                continue
+            total_horas_projeto = round(sum(t.total_horas for t in tarefas_projeto), 2)
+            valor_total = round(total_horas_projeto * projeto.valor_por_hora, 2)
             projetos.append(
                 RelatorioProjetoItem(
-                    projeto_id=p["projeto_id"],
-                    titulo=p["projeto_titulo"],
-                    valor_por_hora=p["valor_por_hora"],
-                    total_horas=p["total_horas"],
+                    projeto_id=projeto.id,
+                    titulo=projeto.titulo,
+                    valor_por_hora=projeto.valor_por_hora,
+                    total_horas=total_horas_projeto,
                     valor_total=valor_total,
-                    tarefas=tarefas_por_projeto.get(p["projeto_id"], []),
+                    tarefas=tarefas_projeto,
                 )
             )
-            total_geral_horas += p["total_horas"]
+            total_geral_horas += total_horas_projeto
             total_geral_valor += valor_total
 
         return RelatorioResponse(
+            id=str(uuid.uuid4()),
             cliente=RelatorioClienteInfo(
                 id=cliente.id,
                 nome=cliente.nome,
@@ -85,7 +160,7 @@ class RelatorioService:
                 estado=cliente.estado,
                 cep=cliente.cep,
             ),
-            mes_referencia=f"{mes:02d}/{ano}",
+            mes_referencia=f"{data.mes:02d}/{data.ano}",
             totais=RelatorioTotais(
                 total_horas=round(total_geral_horas, 2),
                 total_valor=round(total_geral_valor, 2),
@@ -93,6 +168,36 @@ class RelatorioService:
             projetos=projetos,
             dados_bancarios=self._build_dados_bancarios(),
         )
+
+    def tarefas_elegiveis(
+        self, cliente_id: str, mes: int, ano: int, projeto_id: Optional[str] = None
+    ) -> list[FechamentoTarefaDisponivel]:
+        rows = self.repository.get_tarefas_elegiveis_fechamento(
+            cliente_id, mes, ano, projeto_id
+        )
+        return [
+            FechamentoTarefaDisponivel(
+                tarefa_id=r["tarefa_id"],
+                titulo=r["titulo"],
+                projeto_id=r["projeto_id"],
+                projeto_titulo=r["projeto_titulo"],
+                status=r["status"],
+                total_horas_periodo=r["total_horas"],
+            )
+            for r in rows
+        ]
+
+    def listar(self) -> list[RelatorioResumo]:
+        return [RelatorioResumo(**r) for r in self.repository.list_relatorios()]
+
+    def obter(self, relatorio_id: str) -> RelatorioResponse:
+        row = self.repository.get_relatorio_by_id(relatorio_id)
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Relatório not found",
+            )
+        return RelatorioResponse.model_validate(row["dados"])
 
     def _build_dados_bancarios(self) -> Optional[RelatorioDadosBancariosInfo]:
         obj = self.dados_bancarios_repository.get_or_create()

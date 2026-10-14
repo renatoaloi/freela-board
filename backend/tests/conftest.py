@@ -120,6 +120,38 @@ def created_apontamento(client, headers, sample_apontamento_data):
 
 
 @pytest.fixture
+def sample_apontamento_data_passado(created_tarefa):
+    return {
+        "tarefa_id": created_tarefa["id"],
+        "data": "2025-05-15",
+        "hora_ini": "08:00",
+        "hora_fim": "12:00",
+    }
+
+
+@pytest.fixture
+def created_apontamento_passado(
+    client, headers, sample_apontamento_data_passado
+):
+    response = client.post(
+        "/api/v1/apontamentos",
+        json=sample_apontamento_data_passado,
+        headers=headers,
+    )
+    return response.json()
+
+
+@pytest.fixture
+def created_tarefa_pronta(client, headers, created_tarefa):
+    response = client.put(
+        f"/api/v1/tarefas/{created_tarefa['id']}",
+        json={"status": "pronta"},
+        headers=headers,
+    )
+    return response.json()
+
+
+@pytest.fixture
 def created_dados_bancarios(client, headers):
     response = client.get("/api/v1/dados-bancarios", headers=headers)
     return response.json()
