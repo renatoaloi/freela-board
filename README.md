@@ -10,7 +10,7 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 - **Kanban** — Quadro visual com colunas Nova → Em andamento → Pronta → Fechada, filtrável por cliente e projeto
 - **Tarefas** — Gerenciamento com descrição markdown, upload de anexos (PDFs, imagens) e lançamento de horas
 - **Apontamentos** — Registro de múltiplos períodos de hora início/fim por tarefa, com total de horas calculado automaticamente
-- **Relatórios** — Listagem dos relatórios já fechados, com visualização do detalhe (memória de cálculo por projeto, total de horas e valor total) e download do PDF
+- **Relatórios** — Listagem dos relatórios já fechados, com visualização do detalhe (memória de cálculo por projeto, total de horas e valor total) e download do PDF; cada tarefa do PDF ocupa uma página com seus dias de apontamento, descrição e um mosaico das imagens anexadas (até 10)
 - **Fechamento mensal** — Escolha de cliente, mês/ano (e opcionalmente projeto) e seleção das tarefas prontas que entram no relatório; ao fechar, o relatório fica gravado com os totais congelados e as tarefas selecionadas vão para o status Fechada
 
 ## Regras de Negócio
@@ -20,7 +20,8 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 - CNPJ deve ter 14 dígitos — validado no servidor
 - Duplicidade de CNPJ retorna erro 409
 - Total de horas calculado automaticamente no backend (hora fim - hora início)
-- Relatório gerado a partir do fechamento do mês e gravado como snapshot (não é recalculado depois)
+- Relatório gerado a partir do fechamento do mês e gravado como snapshot (não é recalculado depois) — relatórios fechados antes do detalhamento diário/anexos não ganham essas informações retroativamente
+- No PDF do relatório, cada tarefa inicia uma nova página com seus dias de apontamento, descrição e mosaico de imagens; anexos que não são imagem ficam fora do PDF
 - Só entram no fechamento tarefas com status `pronta` que tenham apontamentos no mês/ano escolhidos; cada cliente admite um relatório por competência
 - Após o fechamento, as tarefas selecionadas passam para o status `fechada` e saem do fluxo do Kanban
 - O filtro de mês/ano do Kanban considera a data dos apontamentos da tarefa; tarefas sem nenhum apontamento aparecem em qualquer competência selecionada, e ficam ocultas apenas as que têm apontamentos em outro período

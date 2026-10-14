@@ -1,5 +1,7 @@
 import pytest
 
+from app.core.config import settings
+
 MES = 5
 ANO = 2025
 
@@ -301,3 +303,90 @@ def test_projeto_sem_tarefa_selecionada_nao_entra_no_relatorio(
     assert len(data["projetos"]) == 1
     assert data["projetos"][0]["projeto_id"] == created_projeto["id"]
     assert data["totais"]["total_horas"] == 4.0
+
+
+def test_snapshot_traz_dias_descricao_e_anexos(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    client.put(
+        f"/api/v1/tarefas/{created_tarefa_pronta['id']}",
+        json={"descricao": "Revisao do sistema"},
+        headers=headers,
+    )
+    client.post(
+        "/api/v1/apontamentos",
+        json={
+            "tarefa_id": created_tarefa_pronta["id"],
+            "data": f"{ANO}-0{MES}-20",
+            "hora_ini": "14:00",
+            "hora_fim": "16:00",
+        },
+        headers=headers,
+    )
+
+    fechado = fechar(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    tarefa = fechado["projetos"][0]["tarefas"][0]
+
+    assert tarefa["descricao"] == "Revisao do sistema"
+    assert tarefa["anexos"] == []
+    assert [d["data"] for d in tarefa["dias"]] == [
+        f"{ANO}-0{MES}-15",
+        f"{ANO}-0{MES}-20",
+    ]
+    assert tarefa["dias"][0]["apontamentos"] == [
+        {"hora_ini": "08:00", "hora_fim": "12:00", "total_horas": 4.0}
+    ]
+    assert tarefa["dias"][1]["total_horas"] == 2.0
+    assert tarefa["total_horas"] == 6.0
+
+
+def test_snapshot_ignora_apontamento_fora_da_competencia(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    client.post(
+        "/api/v1/apontamentos",
+        json={
+            "tarefa_id": created_tarefa_pronta["id"],
+            "data": f"{ANO}-06-10",
+            "hora_ini": "08:00",
+            "hora_fim": "10:00",
+        },
+        headers=headers,
+    )
+
+    fechado = fechar(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    tarefa = fechado["projetos"][0]["tarefas"][0]
+
+    assert [d["data"] for d in tarefa["dias"]] == [f"{ANO}-0{MES}-15"]
+    assert tarefa["total_horas"] == 4.0
+
+
+def test_snapshot_registra_anexos_da_tarefa(
+    client,
+    headers,
+    created_cliente,
+    created_tarefa_pronta,
+    created_apontamento_passado,
+    monkeypatch,
+    tmp_path,
+):
+    storage = tmp_path / "uploads"
+    storage.mkdir()
+    monkeypatch.setattr(settings, "STORAGE_PATH", str(storage))
+
+    files = {"file": ("evidencia.png", b"conteudo-binario", "image/png")}
+    upload = client.post(
+        f"/api/v1/upload/{created_tarefa_pronta['id']}", files=files, headers=headers
+    )
+    assert upload.status_code == 200
+
+    fechado = fechar(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    anexos = fechado["projetos"][0]["tarefas"][0]["anexos"]
+    assert len(anexos) == 1
+    assert anexos[0].endswith(".png")

@@ -10,7 +10,9 @@ from app.domain.enums import TarefaStatus
 from app.domain.schemas import (
     FechamentoCreate,
     FechamentoTarefaDisponivel,
+    RelatorioApontamentoItem,
     RelatorioClienteInfo,
+    RelatorioTarefaDia,
     RelatorioDadosBancariosInfo,
     RelatorioProjetoItem,
     RelatorioResumo,
@@ -113,6 +115,11 @@ class RelatorioService:
             )
         }
 
+        apontamentos = self.repository.get_apontamentos_detalhados_por_tarefas(
+            ids_selecionados, data.mes, data.ano
+        )
+        dias_por_tarefa = self._agrupar_apontamentos_por_dia(apontamentos)
+
         tarefas_por_projeto: dict[str, list[RelatorioTarefaItem]] = defaultdict(list)
         for tarefa in tarefas:
             tarefas_por_projeto[tarefa.projeto_id].append(
@@ -120,6 +127,9 @@ class RelatorioService:
                     tarefa_id=tarefa.id,
                     titulo=tarefa.titulo,
                     total_horas=elegiveis_por_id[tarefa.id]["total_horas"],
+                    descricao=tarefa.descricao,
+                    anexos=list(tarefa.anexos or []),
+                    dias=dias_por_tarefa.get(tarefa.id, []),
                 )
             )
 
@@ -168,6 +178,30 @@ class RelatorioService:
             projetos=projetos,
             dados_bancarios=self._build_dados_bancarios(),
         )
+
+    @staticmethod
+    def _agrupar_apontamentos_por_dia(
+        apontamentos: list[dict],
+    ) -> dict[str, list[RelatorioTarefaDia]]:
+        por_tarefa: dict[str, dict[str, RelatorioTarefaDia]] = defaultdict(dict)
+        for apontamento in apontamentos:
+            dia = por_tarefa[apontamento["tarefa_id"]].get(apontamento["data"])
+            if not dia:
+                dia = RelatorioTarefaDia(data=apontamento["data"], total_horas=0.0)
+                por_tarefa[apontamento["tarefa_id"]][apontamento["data"]] = dia
+            dia.apontamentos.append(
+                RelatorioApontamentoItem(
+                    hora_ini=apontamento["hora_ini"],
+                    hora_fim=apontamento["hora_fim"],
+                    total_horas=apontamento["total_horas"],
+                )
+            )
+            dia.total_horas = round(dia.total_horas + apontamento["total_horas"], 2)
+
+        return {
+            tarefa_id: sorted(dias.values(), key=lambda d: d.data)
+            for tarefa_id, dias in por_tarefa.items()
+        }
 
     def tarefas_elegiveis(
         self, cliente_id: str, mes: int, ano: int, projeto_id: Optional[str] = None

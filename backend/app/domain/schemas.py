@@ -232,10 +232,25 @@ class RelatorioClienteInfo(BaseModel):
     cep: str
 
 
+class RelatorioApontamentoItem(BaseModel):
+    hora_ini: str
+    hora_fim: str
+    total_horas: float
+
+
+class RelatorioTarefaDia(BaseModel):
+    data: str
+    total_horas: float
+    apontamentos: list[RelatorioApontamentoItem] = Field(default_factory=list)
+
+
 class RelatorioTarefaItem(BaseModel):
     tarefa_id: str
     titulo: str
     total_horas: float
+    descricao: Optional[str] = None
+    anexos: list[str] = Field(default_factory=list)
+    dias: list[RelatorioTarefaDia] = Field(default_factory=list)
 
 
 class RelatorioProjetoItem(BaseModel):

@@ -35,6 +35,70 @@ def obtem_relatorio(client, headers, relatorio_id):
     return client.get(f"/api/v1/relatorios/{relatorio_id}", headers=headers)
 
 
+def test_relatorio_detalhe_traz_dias_apontamentos_e_anexos(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    client.post(
+        "/api/v1/apontamentos",
+        json={
+            "tarefa_id": created_tarefa_pronta["id"],
+            "data": f"{ANO}-0{MES}-20",
+            "hora_ini": "14:00",
+            "hora_fim": "16:00",
+        },
+        headers=headers,
+    )
+    fechado = fechar_mes(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+
+    response = obtem_relatorio(client, headers, fechado["id"])
+    assert response.status_code == 200
+    tarefa = response.json()["projetos"][0]["tarefas"][0]
+
+    assert [d["data"] for d in tarefa["dias"]] == [f"{ANO}-0{MES}-15", f"{ANO}-0{MES}-20"]
+    assert tarefa["dias"][0]["apontamentos"] == [
+        {"hora_ini": "08:00", "hora_fim": "12:00", "total_horas": 4.0}
+    ]
+    assert tarefa["dias"][0]["total_horas"] == 4.0
+    assert tarefa["descricao"] is not None
+    assert tarefa["anexos"] == []
+    assert round(sum(d["total_horas"] for d in tarefa["dias"]), 2) == tarefa["total_horas"]
+
+
+def test_relatorio_sem_detalhamento_para_fechamento_antigo(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    """Snapshots gravados antes do detalhamento seguem sem `dias`.
+
+    Simula o relatório legado convertendo o payload lido removendo o campo.
+    """
+    fechado = fechar_mes(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    relatorio = obtem_relatorio(client, headers, fechado["id"]).json()
+
+    legado = dict(relatorio)
+    legado["projetos"] = [
+        {
+            **p,
+            "tarefas": [
+                {
+                    "tarefa_id": t["tarefa_id"],
+                    "titulo": t["titulo"],
+                    "total_horas": t["total_horas"],
+                }
+                for t in p["tarefas"]
+            ],
+        }
+        for p in relatorio["projetos"]
+    ]
+
+    from app.domain.schemas import RelatorioResponse
+
+    assert RelatorioResponse.model_validate(legado).projetos[0].tarefas[0].dias == []
+
+
 def test_lista_relatorios_vazia(client, headers, created_cliente):
     response = lista_relatorios(client, headers)
     assert response.status_code == 200

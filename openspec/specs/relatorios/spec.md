@@ -61,7 +61,7 @@ O objeto `totais` MUST refletir os valores congelados no fechamento, calculados 
 
 ### Requirement: Resposta inclui projetos com tarefas agrupadas
 
-O array `projetos` MUST incluir um item por projeto que teve tarefas **selecionadas** no fechamento. Cada item MUST incluir `projeto_id`, `titulo`, `valor_por_hora`, `total_horas`, `valor_total` e `tarefas: [RelatorioTarefaItem]`, com apenas as tarefas escolhidas.
+O array `projetos` MUST incluir um item por projeto que teve tarefas **selecionadas** no fechamento. Cada item MUST incluir `projeto_id`, `titulo`, `valor_por_hora`, `total_horas`, `valor_total` e `tarefas: [RelatorioTarefaItem]`, com apenas as tarefas escolhidas. Cada `RelatorioTarefaItem` MUST incluir `tarefa_id`, `titulo`, `total_horas`, `descricao` (pode ser `null`), `anexos` (lista de nomes de arquivo, possivelmente vazia) e `dias` — lista de dias em ordem crescente, cada um com `data`, `total_horas` do dia e `apontamentos` (`hora_ini`, `hora_fim`, `total_horas`).
 
 #### Scenario: Projeto com 2 tarefas
 - **WHEN** o fechamento selecionou 2 tarefas do mesmo projeto (T1 com 4h, T2 com 3h)
@@ -79,6 +79,11 @@ O array `projetos` MUST incluir um item por projeto que teve tarefas **seleciona
 #### Scenario: Apenas tarefas selecionadas aparecem
 - **WHEN** o projeto tinha 3 tarefas elegíveis e 2 foram selecionadas no fechamento
 - **THEN** `projetos[0].tarefas` MUST conter exatamente 2 itens
+
+#### Scenario: Detalhamento diário vem do snapshot
+- **WHEN** o relatório é lido por `id`
+- **THEN** `projetos[0].tarefas[0].dias` MUST conter os dias gravados no fechamento, cada um com seus apontamentos
+- **AND** a soma de `total_horas` dos dias MUST ser igual a `total_horas` da tarefa no relatório
 
 ### Requirement: Frontend renderiza dados do novo schema
 
@@ -168,4 +173,20 @@ A tela de Relatórios MUST listar os relatórios já fechados (cliente, competê
 #### Scenario: Detalhe do relatório
 - **WHEN** o usuário seleciona um relatório da lista
 - **THEN** o detalhe MUST exibir dados do cliente, resumo de totais e detalhamento por projeto com suas tarefas
+
+### Requirement: Frontend exibe detalhamento diário e imagens da tarefa
+
+A tela de detalhe do relatório MUST exibir, dentro de cada projeto, o bloco de cada tarefa com: título, total de horas, dias com os respectivos apontamentos (data, hora início/fim e horas do dia), a descrição da tarefa (quando houver) e miniaturas das imagens anexadas, quando houver.
+
+#### Scenario: Dias e apontamentos visíveis
+- **WHEN** o usuário abre um relatório cuja tarefa teve apontamentos em 2 dias distintos
+- **THEN** o bloco da tarefa MUST listar os 2 dias, cada um com seus apontamentos
+
+#### Scenario: Miniaturas das imagens
+- **WHEN** a tarefa do relatório tem 2 imagens anexadas
+- **THEN** o bloco da tarefa MUST exibir as 2 imagens (miniaturas carregadas do endpoint de upload)
+
+#### Scenario: Tarefa sem anexos de imagem
+- **WHEN** a tarefa só tem anexos que não são imagem (ou nenhum anexo)
+- **THEN** nenhuma miniatura MUST ser exibida para aquela tarefa
 

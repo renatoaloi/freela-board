@@ -1,3 +1,5 @@
+import base64
+import io
 import re
 from datetime import datetime
 from pathlib import Path
@@ -5,10 +7,17 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
+from app.core.config import settings
 from app.domain.schemas import RelatorioResponse
 
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
+
+MAX_IMAGENS_POR_TAREFA = 10
+MAX_DIMENSAO_IMAGEM = 400
+QUALIDADE_JPEG = 75
+
+IMAGE_EXTS = ("jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico")
 
 
 def _slugify(text: str) -> str:
@@ -43,16 +52,106 @@ def _fmt_data_geracao() -> str:
     return datetime.now().strftime("%d/%m/%Y às %H:%M")
 
 
+def _fmt_data(data: str) -> str:
+    try:
+        ano, mes, dia = data.split("-")
+    except ValueError:
+        return data
+    return f"{dia}/{mes}/{ano}"
+
+
+def _is_image(filename: str) -> bool:
+    return filename.lower().split(".")[-1] in IMAGE_EXTS
+
+
+def _reduzir_imagem(caminho: Path) -> tuple[bytes, str]:
+    """Reduz a imagem para caber em MAX_DIMENSAO_IMAGEM e devolve (bytes, mime).
+
+    SVG segue sem alteração (já é vetorial). Imagens menores não são ampliadas.
+    """
+    if caminho.suffix.lower() == ".svg":
+        return caminho.read_bytes(), "image/svg+xml"
+
+    from PIL import Image
+
+    with Image.open(caminho) as imagem:
+        imagem.thumbnail(
+            (MAX_DIMENSAO_IMAGEM, MAX_DIMENSAO_IMAGEM), Image.Resampling.LANCZOS
+        )
+        if imagem.mode in ("RGBA", "LA", "P"):
+            imagem = imagem.convert("RGB")
+        buffer = io.BytesIO()
+        imagem.save(buffer, format="JPEG", quality=QUALIDADE_JPEG, optimize=True)
+        return buffer.getvalue(), "image/jpeg"
+
+
+def _data_uri(caminho: Path) -> str:
+    conteudo, tipo = _reduzir_imagem(caminho)
+    return f"data:{tipo};base64,{base64.b64encode(conteudo).decode('ascii')}"
+
+
+def _montar_fotos_tarefa(cliente_id: str, projeto_id: str, tarefa) -> list[str]:
+    imagens = [a for a in (tarefa.anexos or []) if _is_image(a)][:MAX_IMAGENS_POR_TAREFA]
+    if not imagens:
+        return []
+
+    pasta = (
+        Path(settings.STORAGE_PATH).resolve() / cliente_id / projeto_id / tarefa.tarefa_id
+    )
+    fotos = []
+    for nome in imagens:
+        caminho = pasta / nome
+        if not caminho.is_file():
+            continue
+        fotos.append(_data_uri(caminho))
+    return fotos
+
+
+def _colunas_imagens(quantidade: int) -> int:
+    if quantidade <= 1:
+        return 1
+    if quantidade == 2:
+        return 2
+    if quantidade <= 4:
+        return 2
+    return 3
+
+
 def _build_context(data: RelatorioResponse) -> dict[str, Any]:
     cliente = data.cliente
     totais = data.totais
 
     projetos = []
     for p in data.projetos:
-        tarefas = [
-            {"titulo": t.titulo, "total_horas": _fmt_horas(t.total_horas)}
-            for t in p.tarefas
-        ]
+        tarefas = []
+        for t in p.tarefas:
+            fotos = _montar_fotos_tarefa(cliente.id, p.projeto_id, t)
+            tarefas.append(
+                {
+                    "titulo": t.titulo,
+                    "total_horas": _fmt_horas(t.total_horas),
+                    "descricao": t.descricao or "",
+                    "dias": [
+                        {
+                            "data_formatada": _fmt_data(d.data),
+                            "total_horas": _fmt_horas(d.total_horas),
+                            "apontamentos": [
+                                {
+                                    "hora_ini": a.hora_ini,
+                                    "hora_fim": a.hora_fim,
+                                    "total_horas": _fmt_horas(a.total_horas),
+                                }
+                                for a in d.apontamentos
+                            ],
+                        }
+                        for d in t.dias
+                    ],
+                    "tem_dias": bool(t.dias),
+                    "imagens": fotos,
+                    "tem_imagens": bool(fotos),
+                    "colunas_imagens": _colunas_imagens(len(fotos)),
+                }
+            )
         projetos.append(
             {
                 "titulo": p.titulo,

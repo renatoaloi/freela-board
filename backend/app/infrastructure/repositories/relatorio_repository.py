@@ -47,6 +47,30 @@ class RelatorioRepository:
             for r in results
         ]
 
+    def get_apontamentos_detalhados_por_tarefas(
+        self, tarefa_ids: list[str], mes: int, ano: int
+    ) -> list[dict]:
+        if not tarefa_ids:
+            return []
+        rows = (
+            self.db.query(ApontamentoModel)
+            .filter(ApontamentoModel.tarefa_id.in_(tarefa_ids))
+            .filter(func.strftime("%m", ApontamentoModel.data) == f"{mes:02d}")
+            .filter(func.strftime("%Y", ApontamentoModel.data) == str(ano))
+            .order_by(ApontamentoModel.data.asc(), ApontamentoModel.hora_ini.asc())
+            .all()
+        )
+        return [
+            {
+                "tarefa_id": r.tarefa_id,
+                "data": r.data.isoformat(),
+                "hora_ini": r.hora_ini,
+                "hora_fim": r.hora_fim,
+                "total_horas": round(float(r.total_horas), 2),
+            }
+            for r in rows
+        ]
+
     def get_cliente_info(self, cliente_id: str):
         return (
             self.db.query(ClienteModel)

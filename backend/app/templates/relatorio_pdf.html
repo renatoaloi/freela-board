@@ -194,6 +194,89 @@
     background-color: #f7f7f7;
   }
 
+  .tarefa-bloco {
+    page-break-before: always;
+    page-break-inside: avoid;
+    margin-top: 10pt;
+  }
+
+  .tarefa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1pt solid #333;
+    padding-bottom: 4pt;
+  }
+
+  .tarefa-titulo {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #000;
+  }
+
+  .tarefa-horas {
+    font-size: 10pt;
+    font-weight: 600;
+    font-family: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  }
+
+  .tarefa-descricao {
+    margin-top: 6pt;
+    font-size: 9pt;
+    color: #333;
+    white-space: pre-line;
+  }
+
+  .tarefa-dias-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8pt;
+    font-size: 9pt;
+  }
+
+  .tarefa-dias-table th {
+    text-align: left;
+    padding: 3pt 6pt;
+    border-bottom: 0.5pt solid #999;
+    font-weight: 600;
+    color: #444;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+
+  .tarefa-dias-table td {
+    padding: 3pt 6pt;
+    border-bottom: 0.5pt solid #eee;
+  }
+
+  .tarefa-dias-table td:last-child {
+    text-align: right;
+    font-family: 'Liberation Mono', 'DejaVu Sans Mono', monospace;
+  }
+
+  .tarefa-mosaico {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6pt;
+    margin-top: 10pt;
+  }
+
+  .tarefa-foto {
+    flex: 1 1 45%;
+    min-width: 0;
+  }
+
+  .tarefa-foto img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    border: 0.5pt solid #ddd;
+  }
+
+  .tarefa-mosaico-1 .tarefa-foto { flex: 1 1 100%; }
+  .tarefa-mosaico-3 .tarefa-foto { flex: 1 1 30%; }
+
+
   .footer {
     margin-top: 24pt;
     padding-top: 8pt;
@@ -298,22 +381,49 @@
     <div class="projeto-header">{{ projeto.titulo }}</div>
     <div class="projeto-meta">Valor/hora: R$ {{ projeto.valor_por_hora }} &nbsp;|&nbsp; Horas: {{ projeto.total_horas }}h</div>
     {% if projeto.tem_tarefas %}
-    <table class="tarefa-table">
-      <thead>
-        <tr>
-          <th>Tarefa</th>
-          <th>Horas</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for tarefa in projeto.tarefas %}
-        <tr>
-          <td>{{ tarefa.titulo }}</td>
-          <td>{{ tarefa.total_horas }}h</td>
-        </tr>
+    {% for tarefa in projeto.tarefas %}
+    <div class="tarefa-bloco">
+      <div class="tarefa-header">
+        <span class="tarefa-titulo">{{ tarefa.titulo }}</span>
+        <span class="tarefa-horas">{{ tarefa.total_horas }}h</span>
+      </div>
+
+      {% if tarefa.descricao %}
+      <p class="tarefa-descricao">{{ tarefa.descricao }}</p>
+      {% endif %}
+
+      {% if tarefa.tem_dias %}
+      <table class="tarefa-dias-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Período</th>
+            <th>Horas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dia in tarefa.dias %}
+          {% for apontamento in dia.apontamentos %}
+          <tr>
+            <td>{% if loop.first %}{{ dia.data_formatada }}{% endif %}</td>
+            <td>{{ apontamento.hora_ini }} - {{ apontamento.hora_fim }}</td>
+            <td>{{ apontamento.total_horas }}h</td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if tarefa.tem_imagens %}
+      <div class="tarefa-mosaico tarefa-mosaico-{{ tarefa.colunas_imagens }}">
+        {% for imagem in tarefa.imagens %}
+        <div class="tarefa-foto"><img src="{{ imagem }}" alt="Anexo da tarefa" /></div>
         {% endfor %}
-      </tbody>
-    </table>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
     {% endif %}
     <div class="projeto-totals">Total do projeto: {{ projeto.total_horas }}h &middot; R$ {{ projeto.valor_total }}</div>
   </div>

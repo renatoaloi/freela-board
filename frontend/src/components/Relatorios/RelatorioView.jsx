@@ -1,8 +1,59 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { relatoriosAPI } from '../../services/api';
+import { relatoriosAPI, uploadAPI } from '../../services/api';
+import { formatDateBR } from '../../utils/date';
 import Loading from '../Common/Loading';
 import { ArrowDownTrayIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+
+function TaskImages({ tarefaId, anexos }) {
+  const imagens = (anexos || []).filter((fn) =>
+    IMAGE_EXTS.includes(String(fn).toLowerCase().split('.').pop()),
+  );
+
+  if (!tarefaId || imagens.length === 0) return null;
+
+  return (
+    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {imagens.map((nome, i) => (
+        <TaskImage key={nome || i} tarefaId={tarefaId} nome={nome} />
+      ))}
+    </div>
+  );
+}
+
+function TaskImage({ tarefaId, nome }) {
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    let ativo = true;
+    let criado = null;
+    uploadAPI
+      .download(tarefaId, nome)
+      .then((res) => {
+        if (!ativo) return;
+        criado = URL.createObjectURL(res.data);
+        setUrl(criado);
+      })
+      .catch(() => ativo && setUrl(null));
+    return () => {
+      ativo = false;
+      if (criado) URL.revokeObjectURL(criado);
+    };
+  }, [tarefaId, nome]);
+
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="block">
+      <img
+        src={url}
+        alt={nome}
+        className="w-full h-32 object-cover rounded-lg border border-primary-700/50 hover:border-accent-cyan/50 transition-colors"
+      />
+    </a>
+  );
+}
 
 function formatHoras(horas) {
   if (!horas && horas !== 0) return '0,00';
@@ -192,26 +243,54 @@ export default function RelatorioView() {
                       </div>
                     </div>
                     {proj.tarefas && proj.tarefas.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-primary-700/30">
-                        <h5 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Tarefas</h5>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-primary-700/30">
-                                <th className="text-left px-2 py-1 text-xs text-gray-500">Tarefa</th>
-                                <th className="text-right px-2 py-1 text-xs text-gray-500">Horas</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-primary-700/20">
-                              {proj.tarefas.map((tarefa, j) => (
-                                <tr key={tarefa.tarefa_id || j}>
-                                  <td className="px-2 py-1 text-gray-200">{tarefa.titulo}</td>
-                                  <td className="px-2 py-1 text-right font-mono text-accent-green">{formatHoras(tarefa.total_horas)}h</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                      <div className="mt-3 pt-3 border-t border-primary-700/30 space-y-4">
+                        <h5 className="text-xs font-medium text-gray-400 uppercase tracking-wider">Tarefas</h5>
+                        {proj.tarefas.map((tarefa, j) => (
+                          <div
+                            key={tarefa.tarefa_id || j}
+                            className="bg-primary-800/40 rounded-lg p-3 border border-primary-700/40"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <h6 className="text-sm font-medium text-white">{tarefa.titulo}</h6>
+                              <span className="text-sm font-mono text-accent-green">
+                                {formatHoras(tarefa.total_horas)}h
+                              </span>
+                            </div>
+
+                            {tarefa.descricao && (
+                              <p className="text-xs text-gray-400 mt-2 whitespace-pre-line">
+                                {tarefa.descricao}
+                              </p>
+                            )}
+
+                            {tarefa.dias && tarefa.dias.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {tarefa.dias.map((dia, k) => (
+                                  <div key={dia.data || k}>
+                                    <p className="text-xs font-medium text-gray-300">
+                                      {formatDateBR(dia.data)}{' '}
+                                      <span className="font-mono text-accent-green">
+                                        {formatHoras(dia.total_horas)}h
+                                      </span>
+                                    </p>
+                                    {dia.apontamentos?.length > 0 && (
+                                      <p className="text-xs text-gray-500">
+                                        {dia.apontamentos
+                                          .map(
+                                            (a) =>
+                                              `${a.hora_ini} - ${a.hora_fim} (${formatHoras(a.total_horas)}h)`,
+                                          )
+                                          .join(' · ')}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <TaskImages tarefaId={tarefa.tarefa_id} anexos={tarefa.anexos} />
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

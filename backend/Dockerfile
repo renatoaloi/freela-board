@@ -5,6 +5,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
+    zlib1g-dev \
+    libjpeg-dev \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
