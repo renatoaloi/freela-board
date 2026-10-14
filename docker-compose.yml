@@ -2,6 +2,7 @@ services:
   backend:
     build:
       context: ./backend
+      network: host
     container_name: freelaboard-backend
     ports:
       - "8000:8000"
@@ -22,6 +23,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      network: host
       args:
         VITE_API_KEY: ${VITE_API_KEY:-freela-secret-key-2024}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}

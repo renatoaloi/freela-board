@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.models import ApontamentoModel, TarefaModel
@@ -44,16 +44,21 @@ class TarefaRepository(BaseRepository[TarefaModel]):
         if status is not None:
             query = query.filter(TarefaModel.status == status)
         if use_competencia:
-            query = query.join(
-                ApontamentoModel, ApontamentoModel.tarefa_id == TarefaModel.id
-            )
+            periodo = []
             if mes is not None:
-                query = query.filter(
-                    func.strftime("%m", ApontamentoModel.data) == f"{mes:02d}"
-                )
+                periodo.append(func.strftime("%m", ApontamentoModel.data) == f"{mes:02d}")
             if ano is not None:
-                query = query.filter(
-                    func.strftime("%Y", ApontamentoModel.data) == str(ano)
-                )
+                periodo.append(func.strftime("%Y", ApontamentoModel.data) == str(ano))
+
+            sem_apontamento = ~exists(
+                select(ApontamentoModel.id)
+                .where(ApontamentoModel.tarefa_id == TarefaModel.id)
+                .correlate(TarefaModel)
+            )
+
+            query = query.outerjoin(
+                ApontamentoModel,
+                and_(ApontamentoModel.tarefa_id == TarefaModel.id, *periodo),
+            ).filter(or_(ApontamentoModel.id.is_not(None), sem_apontamento))
             query = query.distinct()
         return query.all()

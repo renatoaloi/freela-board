@@ -23,7 +23,7 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 - Relatório gerado a partir do fechamento do mês e gravado como snapshot (não é recalculado depois)
 - Só entram no fechamento tarefas com status `pronta` que tenham apontamentos no mês/ano escolhidos; cada cliente admite um relatório por competência
 - Após o fechamento, as tarefas selecionadas passam para o status `fechada` e saem do fluxo do Kanban
-- O filtro de mês/ano do Kanban considera a data dos apontamentos da tarefa
+- O filtro de mês/ano do Kanban considera a data dos apontamentos da tarefa; tarefas sem nenhum apontamento aparecem em qualquer competência selecionada, e ficam ocultas apenas as que têm apontamentos em outro período
 - Upload de arquivos organizado em pastas `storage/{cliente_id}/{projeto_id}/{tarefa_id}/`
 
 ## Entidades

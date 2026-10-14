@@ -174,14 +174,56 @@ def test_tarefas_filtradas_por_competencia(
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == created_tarefa_pronta["id"]
-    assert sem_apontamento["id"] not in [t["id"] for t in data]
+    assert len(data) == 2
+    ids = [t["id"] for t in data]
+    assert created_tarefa_pronta["id"] in ids
+    assert sem_apontamento["id"] in ids
 
     response = client.get(
         f"/api/v1/tarefas?projeto_id={created_projeto['id']}", headers=headers
     )
     assert len(response.json()) == 2
+
+
+def test_tarefa_com_apontamento_em_outro_mes_fica_oculta(
+    client,
+    headers,
+    created_projeto,
+    created_tarefa_pronta,
+    created_apontamento_passado,
+):
+    response = client.get(
+        f"/api/v1/tarefas?projeto_id={created_projeto['id']}&mes=6&ano={ANO}",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json() == []
+
+    response = client.get(
+        f"/api/v1/tarefas?projeto_id={created_projeto['id']}&mes={MES}&ano=2024",
+        headers=headers,
+    )
+    assert response.json() == []
+
+
+def test_tarefa_sem_apontamento_aparece_em_qualquer_competencia(
+    client,
+    headers,
+    created_projeto,
+):
+    sem_apontamento = client.post(
+        "/api/v1/tarefas",
+        json={"projeto_id": created_projeto["id"], "titulo": "Nova sem apontamento"},
+        headers=headers,
+    ).json()
+
+    for mes in (5, 6, 12):
+        response = client.get(
+            f"/api/v1/tarefas?projeto_id={created_projeto['id']}&mes={mes}&ano={ANO}",
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert [t["id"] for t in response.json()] == [sem_apontamento["id"]]
 
 
 @pytest.mark.skipif(not HAS_WEASYPRINT, reason="WeasyPrint not available")
