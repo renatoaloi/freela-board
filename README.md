@@ -175,7 +175,8 @@ Todos sob o prefixo `/api/v1`:
 | `GET` | `/tarefas` | Listar (filtros: `?projeto_id=&status=&mes=&ano=`) |
 | `GET` | `/tarefas/{id}` | Obter por ID |
 | `POST` | `/tarefas` | Criar |
-| `PUT` | `/tarefas/{id}` | Atualizar (inclui status) |
+| `PUT` | `/tarefas/{id}` | Atualizar (título, descrição, status, anexos) |
+| `PATCH` | `/tarefas/{id}/projeto` | Transferir a tarefa para outro projeto do mesmo cliente (move os anexos) |
 | `DELETE` | `/tarefas/{id}` | Remover |
 | **Apontamentos** | | |
 | `GET` | `/apontamentos` | Listar (`?tarefa_id=`) |

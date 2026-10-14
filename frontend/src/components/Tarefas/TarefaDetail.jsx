@@ -10,6 +10,8 @@ import FileUpload from '../Common/FileUpload';
 import FilePreviewModal from '../Common/FilePreviewModal';
 import ConfirmModal from '../Common/ConfirmModal';
 import AlertModal from '../Common/AlertModal';
+import MoverTarefaProjetoModal from '../Common/MoverTarefaProjetoModal';
+import { projetosAPI } from '../../services/api';
 import { formatDateBR } from '../../utils/date';
 import {
   ArrowLeftIcon,
@@ -17,6 +19,7 @@ import {
   ClockIcon,
   PaperClipIcon,
   TrashIcon,
+  ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline';
 
 const statusBadge = {
@@ -103,6 +106,8 @@ export default function TarefaDetail() {
   const [coverModalFile, setCoverModalFile] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [alertMsg, setAlertMsg] = useState(null);
+  const [projetoAtual, setProjetoAtual] = useState(null);
+  const [moveOpen, setMoveOpen] = useState(false);
 
   const fetchTarefa = useCallback(async () => {
     try {
@@ -119,6 +124,14 @@ export default function TarefaDetail() {
       setApontamentos(res.data || []);
     } catch {}
   }, [id]);
+
+  useEffect(() => {
+    if (!tarefa?.projeto_id) return;
+    projetosAPI
+      .get(tarefa.projeto_id)
+      .then((res) => setProjetoAtual(res.data))
+      .catch(() => setProjetoAtual(null));
+  }, [tarefa]);
 
   useEffect(() => {
     const load = async () => {
@@ -177,15 +190,26 @@ export default function TarefaDetail() {
             </div>
             <p className="text-xs text-gray-500 mt-2">
               Criada em {tarefa.data_criacao ? formatDateBR(tarefa.data_criacao) : '—'}
+              {projetoAtual?.titulo ? ` · ${projetoAtual.titulo}` : ''}
             </p>
           </div>
-          <button
-            onClick={() => setFormOpen(true)}
-            className="btn-icon text-gray-400 hover:text-accent-cyan"
-            title="Editar tarefa"
-          >
-            <PencilSquareIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMoveOpen(true)}
+              disabled={!projetoAtual}
+              className="btn-icon text-gray-400 hover:text-accent-cyan disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Mover para outro projeto"
+            >
+              <ArrowsRightLeftIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setFormOpen(true)}
+              className="btn-icon text-gray-400 hover:text-accent-cyan"
+              title="Editar tarefa"
+            >
+              <PencilSquareIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {tarefa.descricao && (
@@ -303,6 +327,16 @@ export default function TarefaDetail() {
         title="Erro"
         message={alertMsg}
         onClose={() => setAlertMsg(null)}
+      />
+
+      <MoverTarefaProjetoModal
+        isOpen={moveOpen}
+        tarefa={tarefa && projetoAtual ? { ...tarefa, cliente_id: projetoAtual.cliente_id } : null}
+        onClose={() => setMoveOpen(false)}
+        onSuccess={async () => {
+          await fetchTarefa();
+          setAlertMsg('Tarefa movida para o novo projeto.');
+        }}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { tarefasAPI, clientesAPI, projetosAPI } from '../../services/api';
 import Loading from '../Common/Loading';
 import TarefaForm from '../Tarefas/TarefaForm';
 import KanbanColumn from './KanbanColumn';
+import MoverTarefaProjetoModal from '../Common/MoverTarefaProjetoModal';
 import AlertModal from '../Common/AlertModal';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
@@ -43,6 +44,7 @@ export default function Kanban() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('nova');
   const [alertMsg, setAlertMsg] = useState(null);
+  const [moveTarget, setMoveTarget] = useState(null);
 
   const tarefasRef = useRef(tarefas);
   tarefasRef.current = tarefas;
@@ -196,6 +198,9 @@ export default function Kanban() {
                 status={status}
                 tarefas={grouped[status] || []}
                 loading={loading}
+                onMover={(tarefa) =>
+                  setMoveTarget({ ...tarefa, cliente_id: selectedCliente })
+                }
               />
             ))}
         <div className="w-full sm:w-40">
@@ -239,6 +244,13 @@ export default function Kanban() {
         title="Erro"
         message={alertMsg}
         onClose={() => setAlertMsg(null)}
+      />
+
+      <MoverTarefaProjetoModal
+        isOpen={!!moveTarget}
+        tarefa={moveTarget}
+        onClose={() => setMoveTarget(null)}
+        onSuccess={fetchTarefas}
       />
     </div>
   );

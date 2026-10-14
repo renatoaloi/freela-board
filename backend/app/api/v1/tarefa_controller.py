@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_api_key
-from app.domain.schemas import TarefaCreate, TarefaResponse, TarefaUpdate
+from app.domain.schemas import TarefaCreate, TarefaProjetoUpdate, TarefaResponse, TarefaUpdate
 from app.application.services.tarefa_service import TarefaService
 from app.infrastructure.repositories.projeto_repository import ProjetoRepository
 from app.infrastructure.repositories.tarefa_repository import TarefaRepository
@@ -45,6 +45,15 @@ def update_tarefa(
     id: str, data: TarefaUpdate, service: TarefaService = Depends(get_tarefa_service)
 ):
     return service.update(id, data)
+
+
+@router.patch("/{id}/projeto", response_model=TarefaResponse)
+def mover_tarefa_projeto(
+    id: str,
+    data: TarefaProjetoUpdate,
+    service: TarefaService = Depends(get_tarefa_service),
+):
+    return service.mover_projeto(id, data)
 
 
 @router.delete("/{id}")

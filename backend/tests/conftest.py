@@ -142,6 +142,24 @@ def created_apontamento_passado(
 
 
 @pytest.fixture
+def sample_projeto_destino_data(created_cliente):
+    return {
+        "cliente_id": created_cliente["id"],
+        "titulo": "Projeto Destino",
+        "descricao": "Segundo projeto do mesmo cliente",
+        "valor_por_hora": 200.0,
+    }
+
+
+@pytest.fixture
+def created_projeto_destino(client, headers, sample_projeto_destino_data):
+    response = client.post(
+        "/api/v1/projetos", json=sample_projeto_destino_data, headers=headers
+    )
+    return response.json()
+
+
+@pytest.fixture
 def created_tarefa_pronta(client, headers, created_tarefa):
     response = client.put(
         f"/api/v1/tarefas/{created_tarefa['id']}",

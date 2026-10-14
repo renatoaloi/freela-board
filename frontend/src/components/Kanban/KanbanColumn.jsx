@@ -32,7 +32,7 @@ const statusLabels = {
   fechada: 'Fechada',
 };
 
-export default function KanbanColumn({ status, tarefas, loading }) {
+export default function KanbanColumn({ status, tarefas, loading, onMover }) {
   const style = columnStyles[status] || columnStyles.nova;
 
   return (
@@ -63,7 +63,7 @@ export default function KanbanColumn({ status, tarefas, loading }) {
                 <p className="text-xs text-accent-cyan/60">Solte aqui</p>
               </div>
             ) : (
-              tarefas.map((tarefa, index) => <KanbanCard key={tarefa.id} tarefa={tarefa} index={index} />)
+              tarefas.map((tarefa, index) => <KanbanCard key={tarefa.id} tarefa={tarefa} index={index} onMover={onMover} />)
             )}
             {provided.placeholder}
           </div>

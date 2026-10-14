@@ -1,9 +1,10 @@
 from typing import Optional
 
 from sqlalchemy import and_, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.domain.models import ApontamentoModel, TarefaModel
+from app.core.database import Base
+from app.domain.models import ApontamentoModel, RelatorioTarefaModel, TarefaModel
 from app.infrastructure.repositories.base_repository import BaseRepository
 
 
@@ -29,6 +30,22 @@ class TarefaRepository(BaseRepository[TarefaModel]):
             )
             .all()
         )
+
+    def get_com_projeto(self, id: str) -> Optional[TarefaModel]:
+        return (
+            self.db.query(TarefaModel)
+            .options(joinedload(TarefaModel.projeto))
+            .filter(TarefaModel.id == id)
+            .first()
+        )
+
+    def vinculada_a_relatorio(self, tarefa_id: str) -> bool:
+        row = (
+            self.db.query(RelatorioTarefaModel.id)
+            .filter(RelatorioTarefaModel.tarefa_id == tarefa_id)
+            .first()
+        )
+        return row is not None
 
     def list_all_filtered(
         self,

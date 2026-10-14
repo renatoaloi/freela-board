@@ -2,8 +2,12 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 
+from app.application.services.upload_service import (
+    desfazer_movimento_anexos,
+    mover_anexos_tarefa,
+)
 from app.domain.enums import TarefaStatus
-from app.domain.schemas import TarefaCreate, TarefaUpdate
+from app.domain.schemas import TarefaCreate, TarefaProjetoUpdate, TarefaUpdate
 from app.infrastructure.repositories.projeto_repository import ProjetoRepository
 from app.infrastructure.repositories.tarefa_repository import TarefaRepository
 
@@ -64,6 +68,57 @@ class TarefaService:
                 )
         updated = self.repository.update(id, **update_data)
         return updated
+
+    def mover_projeto(self, id: str, data: TarefaProjetoUpdate):
+        tarefa = self.repository.get_com_projeto(id)
+        if not tarefa:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tarefa not found",
+            )
+
+        destino = self.projeto_repository.get_by_id(data.projeto_id)
+        if not destino:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Projeto not found",
+            )
+
+        if destino.id == tarefa.projeto_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A tarefa já está neste projeto",
+            )
+
+        projeto_atual = tarefa.projeto
+        if destino.cliente_id != projeto_atual.cliente_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O projeto de destino pertence a outro cliente",
+            )
+
+        if tarefa.status == TarefaStatus.FECHADA.value:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Tarefa fechada não pode ser transferida",
+            )
+
+        if self.repository.vinculada_a_relatorio(tarefa.id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Tarefa vinculada a relatório fechado não pode ser transferida",
+            )
+
+        movidos = mover_anexos_tarefa(
+            projeto_atual.cliente_id, projeto_atual.id, destino.id, tarefa.id
+        )
+        try:
+            return self.repository.update(id, projeto_id=destino.id)
+        except Exception:
+            desfazer_movimento_anexos(
+                movidos, projeto_atual.cliente_id, destino.id, tarefa.id
+            )
+            raise
 
     def delete(self, id: str):
         obj = self.repository.get_by_id(id)

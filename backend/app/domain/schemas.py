@@ -156,6 +156,10 @@ class TarefaUpdate(BaseModel):
     anexos: Optional[list[str]] = None
 
 
+class TarefaProjetoUpdate(BaseModel):
+    projeto_id: str
+
+
 class TarefaResponse(BaseModel):
     id: str
     projeto_id: str

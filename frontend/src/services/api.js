@@ -32,6 +32,7 @@ export const projetosAPI = {
 export const tarefasAPI = {
   list: (params = {}) => api.get('/tarefas', { params }),
   get: (id) => api.get(`/tarefas/${id}`),
+  moverProjeto: (id, projeto_id) => api.patch(`/tarefas/${id}/projeto`, { projeto_id }),
   create: (data) => api.post('/tarefas', data),
   update: (id, data) => api.put(`/tarefas/${id}`, data),
   delete: (id) => api.delete(`/tarefas/${id}`),
