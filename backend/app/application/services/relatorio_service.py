@@ -51,14 +51,6 @@ class RelatorioService:
                 detail="Selecione ao menos uma tarefa para o fechamento",
             )
 
-        if self.repository.get_relatorio_by_competencia(
-            data.cliente_id, data.mes, data.ano
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Já existe relatório fechado para este cliente neste mês/ano",
-            )
-
         elegiveis = self.repository.get_tarefas_elegiveis_fechamento(
             data.cliente_id, data.mes, data.ano
         )
@@ -73,13 +65,17 @@ class RelatorioService:
                 detail=f"Tarefas não elegíveis para o fechamento: {', '.join(invalidas)}",
             )
 
-        relatorio = self._build_snapshot(cliente, data, ids_selecionados, elegiveis_por_id)
+        numero = self.repository.proximo_numero(cliente.id, data.mes, data.ano)
+        relatorio = self._build_snapshot(
+            cliente, data, ids_selecionados, elegiveis_por_id, numero
+        )
         tarefas = self.repository.get_tarefas_by_ids(ids_selecionados)
 
         try:
             self.repository.create_relatorio(
                 relatorio_id=relatorio.id,
                 cliente_id=cliente.id,
+                numero=numero,
                 mes=data.mes,
                 ano=data.ano,
                 total_horas=relatorio.totais.total_horas,
@@ -94,10 +90,35 @@ class RelatorioService:
             self.db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Já existe relatório fechado para este cliente neste mês/ano",
+                detail="Conflito ao registrar o fechamento; nada foi alterado",
             )
 
         return relatorio
+
+    def reverter(self, relatorio_id: str) -> None:
+        row = self.repository.get_relatorio_by_id(relatorio_id)
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Relatório not found",
+            )
+
+        tarefa_ids = self.repository.get_tarefas_ids_do_relatorio(relatorio_id)
+        self.repository.delete_vinculos(relatorio_id)
+        self.repository.delete_relatorio(relatorio_id)
+        ainda_vinculadas = self.repository.tarefas_vinculadas(tarefa_ids)
+
+        for tarefa_id in tarefa_ids:
+            if tarefa_id in ainda_vinculadas:
+                continue
+            tarefas = self.repository.get_tarefas_by_ids([tarefa_id])
+            if not tarefas:
+                continue
+            tarefa = tarefas[0]
+            if tarefa.status == TarefaStatus.FECHADA.value:
+                tarefa.status = TarefaStatus.PRONTA.value
+
+        self.db.commit()
 
     def _build_snapshot(
         self,
@@ -105,6 +126,7 @@ class RelatorioService:
         data: FechamentoCreate,
         ids_selecionados: list[str],
         elegiveis_por_id: dict[str, dict],
+        numero: int,
     ) -> RelatorioResponse:
         tarefas = self.repository.get_tarefas_by_ids(ids_selecionados)
         tarefas.sort(key=lambda t: ids_selecionados.index(t.id))
@@ -157,6 +179,7 @@ class RelatorioService:
 
         return RelatorioResponse(
             id=str(uuid.uuid4()),
+            numero=numero,
             cliente=RelatorioClienteInfo(
                 id=cliente.id,
                 nome=cliente.nome,

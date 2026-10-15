@@ -99,6 +99,96 @@ def test_relatorio_sem_detalhamento_para_fechamento_antigo(
     assert RelatorioResponse.model_validate(legado).projetos[0].tarefas[0].dias == []
 
 
+def test_reverter_devolve_tarefas_para_pronta(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    fechado = fechar_mes(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    assert (
+        client.get(
+            f"/api/v1/tarefas/{created_tarefa_pronta['id']}", headers=headers
+        ).json()["status"]
+        == "fechada"
+    )
+
+    response = client.delete(f"/api/v1/relatorios/{fechado['id']}", headers=headers)
+    assert response.status_code == 204
+
+    tarefa = client.get(
+        f"/api/v1/tarefas/{created_tarefa_pronta['id']}", headers=headers
+    ).json()
+    assert tarefa["status"] == "pronta"
+
+
+def test_reverter_remove_relatorio_da_lista_e_do_detalhe(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    fechado = fechar_mes(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    assert len(client.get("/api/v1/relatorios", headers=headers).json()) == 1
+
+    assert (
+        client.delete(f"/api/v1/relatorios/{fechado['id']}", headers=headers).status_code
+        == 204
+    )
+
+    assert client.get("/api/v1/relatorios", headers=headers).json() == []
+    assert obtem_relatorio(client, headers, fechado["id"]).status_code == 404
+    assert (
+        client.get(
+            f"/api/v1/relatorios/{fechado['id']}/pdf", headers=headers
+        ).status_code
+        == 404
+    )
+
+
+def test_reverter_tarefa_fica_elegivel_de_novo(
+    client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    fechado = fechar_mes(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    ).json()
+    client.delete(f"/api/v1/relatorios/{fechado['id']}", headers=headers)
+
+    elegiveis = client.get(
+        f"/api/v1/fechamentos/tarefas-elegiveis?cliente_id={created_cliente['id']}"
+        f"&mes={MES}&ano={ANO}",
+        headers=headers,
+    ).json()
+    assert [t["tarefa_id"] for t in elegiveis] == [created_tarefa_pronta["id"]]
+
+    novo = fechar_mes(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    )
+    assert novo.status_code == 201
+    assert novo.json()["numero"] == 1
+
+
+def test_reverter_id_inexistente(client, headers):
+    assert client.delete("/api/v1/relatorios/nao-existe", headers=headers).status_code == 404
+
+
+def test_reverter_sem_autenticacao(
+    client, created_cliente, created_tarefa_pronta, created_apontamento_passado
+):
+    fechado = fechar_mes(
+        client,
+        {"X-API-Key": "freela-secret-key-2024"},
+        created_cliente["id"],
+        [created_tarefa_pronta["id"]],
+    ).json()
+
+    assert client.delete(f"/api/v1/relatorios/{fechado['id']}").status_code == 422
+    assert (
+        client.delete(
+            f"/api/v1/relatorios/{fechado['id']}", headers={"X-API-Key": "errada"}
+        ).status_code
+        == 401
+    )
+
+
 def test_lista_relatorios_vazia(client, headers, created_cliente):
     response = lista_relatorios(client, headers)
     assert response.status_code == 200

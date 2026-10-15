@@ -70,6 +70,14 @@ def get_relatorio(
     return service.obter(id)
 
 
+@router.delete("/relatorios/{id}", status_code=204)
+def reverter_relatorio(
+    id: str,
+    service: RelatorioService = Depends(get_relatorio_service),
+):
+    service.reverter(id)
+
+
 @router.get("/relatorios/{id}/pdf")
 def get_relatorio_pdf(
     id: str,

@@ -22,7 +22,7 @@ O PDF MUST usar formato A4, margens de 2.5cm, tipografia Liberation Sans (≈Ari
 
 ### Requirement: Conteúdo do relatório no PDF
 
-O PDF MUST conter todas as seções do relatório (dados do cliente, resumo de totais e detalhamento por projeto), sendo que o detalhamento MUST apresentar **uma página por tarefa**: cada tarefa inicia em página nova com seu título, total de horas, a descrição, os dias com os apontamentos e um mosaico com as imagens anexadas. Anexos que não são imagem MUST NOT aparecer no PDF.
+O PDF MUST conter todas as seções do relatório (dados do cliente, resumo de totais e detalhamento por projeto). No detalhamento, cada **projeto** MUST iniciar em página nova (a partir do segundo projeto da lista), e sua **primeira tarefa** MUST seguir logo abaixo do cabeçalho, na mesma página; as **demais tarefas** do projeto MUST abrir página nova. O cabeçalho do projeto MUST NOT ficar isolado no fim de uma página, e MUST NOT haver página em branco entre o cabeçalho do projeto e sua primeira tarefa.
 
 #### Scenario: Dados do cliente
 - **WHEN** o relatório é gerado
@@ -36,15 +36,24 @@ O PDF MUST conter todas as seções do relatório (dados do cliente, resumo de t
 #### Scenario: Detalhamento por projeto
 - **WHEN** há projetos com tarefas selecionadas no período
 - **THEN** o PDF MUST listar cada projeto com: título, valor por hora, total de horas e valor total
-- **AND** cada projeto MUST ser seguido pelas páginas de suas tarefas
+- **AND** o primeiro projeto MUST continuar no fluxo da seção e os demais MUST começar em página nova
+- **AND** o cabeçalho do projeto MUST ser seguido imediatamente pela sua primeira tarefa
 
 #### Scenario: Tarefas dentro de cada projeto
 - **WHEN** um projeto tem tarefas selecionadas
-- **THEN** cada tarefa MUST ser renderizada em bloco próprio, iniciando uma nova página
+- **THEN** cada tarefa MUST ser renderizada em bloco próprio
+- **AND** a primeira tarefa MUST NOT forçar quebra de página
+
+#### Scenario: Sem página em branco após o cabeçalho do projeto
+- **WHEN** o cabeçalho do projeto termina próximo ao fim de uma página
+- **THEN** o sistema MUST manter o cabeçalho junto da primeira tarefa (`page-break-after: avoid` no cabeçalho)
+- **AND** o PDF MUST NOT gerar página em branco entre os dois
 
 #### Scenario: Uma página por tarefa
-- **WHEN** o PDF é aberto em um leitor
-- **THEN** cada tarefa MUST começar no topo de uma nova página (`page-break-before: always`), sem dividir projeto e tarefa na mesma página quando não couber
+- **WHEN** um projeto tem mais de uma tarefa
+- **THEN** cada tarefa a partir da segunda MUST começar no topo de uma nova página (`page-break-before: always`)
+- **AND** a primeira tarefa do projeto MUST seguir na mesma página do cabeçalho, sem forçar quebra
+- **AND** o bloco da tarefa MUST NOT ser cortado no meio (`page-break-inside: avoid`)
 
 #### Scenario: Apontamentos agrupados por dia dentro da tarefa
 - **WHEN** uma tarefa do relatório teve apontamentos em 2026-05-10 e 2026-05-12

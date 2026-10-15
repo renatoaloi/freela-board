@@ -5,7 +5,7 @@ Permite consolidar as horas de um mês em um relatório fechado: o usuário esco
 ## Requirements
 ### Requirement: Apenas tarefas prontas do período são elegíveis
 
-O sistema MUST expor uma consulta de tarefas elegíveis ao fechamento que retorne **somente** tarefas que (a) pertençam a projetos do cliente informado, (b) tenham `status == "pronta"`, e (c) tenham ao menos um apontamento com data dentro do mês/ano informados. Tarefas nos status `nova`, `em_andamento` e `fechada` MUST NOT aparecer na lista de elegíveis.
+O sistema MUST expor uma consulta de tarefas elegíveis ao fechamento que retorne **somente** tarefas que (a) pertençam a projetos do cliente informado, (b) tenham `status == "pronta"`, (c) tenham ao menos um apontamento com data dentro do mês/ano informados, e (d) **não estejam vinculadas a nenhum relatório existente**. Tarefas nos status `nova`, `em_andamento` e `fechada` MUST NOT aparecer na lista de elegíveis, e uma tarefa liberada por uma reversão MUST voltar a aparecer.
 
 #### Scenario: Tarefa pronta com apontamento no mês aparece
 - **WHEN** o usuário escolhe cliente X, mês 05 e ano 2026, havendo uma tarefa `pronta` com apontamento em 2026-05-15
@@ -20,16 +20,20 @@ O sistema MUST expor uma consulta de tarefas elegíveis ao fechamento que retorn
 - **THEN** a tarefa MUST NOT aparecer na lista de elegíveis para mês 05/2026
 
 #### Scenario: Tarefa já fechada não reaparece
-- **WHEN** uma tarefa foi incluída em um fechamento anterior e está `fechada`
+- **WHEN** uma tarefa foi incluída em um relatório e voltou ao fluxo (ex.: status alterado manualmente) mantendo o vínculo
 - **THEN** a tarefa MUST NOT aparecer na lista de elegíveis de outro fechamento
 
 #### Scenario: Projeto usado como recorte adicional
 - **WHEN** o usuário seleciona também um projeto do cliente
 - **THEN** a lista MUST retornar apenas tarefas elegíveis daquele projeto
 
+#### Scenario: Tarefa liberada por reversão volta a ser elegível
+- **WHEN** um relatório que continha a tarefa foi revertido e a tarefa voltou a `pronta`
+- **THEN** a tarefa MUST reaparecer na lista de elegíveis da mesma competência
+
 ### Requirement: Fechamento exige cliente, período e ao menos uma tarefa
 
-O endpoint de fechamento MUST exigir header `X-API-Key` válido (401 se ausente/inválido), `cliente_id` existente (404 caso contrário), `mes` entre 1 e 12, `ano`, e uma lista não vazia de `tarefa_ids`. Requisições fora dessas regras MUST retornar 422 (ou 404/400 conforme o caso) e MUST NOT criar relatório nem alterar status de tarefas.
+O endpoint de fechamento MUST exigir header `X-API-Key` válido (401 se ausente/inválido), `cliente_id` existente (404 caso contrário), `mes` entre 1 e 12, `ano`, e uma lista não vazia de `tarefa_ids`. Todas as tarefas MUST pertencer ao cliente informado, estar `pronta` e não estar vinculadas a outro relatório. Requisições fora dessas regras MUST retornar 422 (ou 404 conforme o caso) e MUST NOT criar relatório nem alterar status de tarefas.
 
 #### Scenario: Lista de tarefas vazia é rejeitada
 - **WHEN** o usuário confirma o fechamento sem selecionar nenhuma tarefa
@@ -49,18 +53,10 @@ O endpoint de fechamento MUST exigir header `X-API-Key` válido (401 se ausente/
 - **WHEN** o `cliente_id` informado não existe
 - **THEN** o backend MUST retornar `404` com `detail: "Cliente not found"`
 
-### Requirement: Um relatório por cliente e competência
-
-O sistema MUST permitir no máximo um relatório fechado por combinação de `cliente_id` + `mes` + `ano`.
-
-#### Scenario: Segundo fechamento do mesmo cliente e mês é bloqueado
-- **WHEN** já existe relatório fechado para o cliente X em 05/2026 e o usuário tenta fechar 05/2026 novamente
-- **THEN** o backend MUST retornar `409`
-- **AND** o relatório existente MUST NOT ser sobrescrito
-
-#### Scenario: Mesmo cliente em meses diferentes é permitido
-- **WHEN** já existe relatório de 05/2026 do cliente X e o usuário fecha 06/2026
-- **THEN** o novo relatório MUST ser criado normalmente
+#### Scenario: Tarefa já faturada em outro relatório é rejeitada
+- **WHEN** `tarefa_ids` contém uma tarefa vinculada a um relatório já existente (mesmo mês ou não)
+- **THEN** o backend MUST retornar erro (`400` ou `422`)
+- **AND** a tarefa MUST NOT entrar em um segundo relatório
 
 ### Requirement: Totais são congelados no fechamento
 
@@ -116,4 +112,21 @@ O snapshot gravado no fechamento MUST conter, para cada tarefa selecionada, alé
 #### Scenario: Tarefa sem descrição e sem anexos
 - **WHEN** o fechamento seleciona uma tarefa sem descrição e sem nenhum anexo
 - **THEN** `descricao` MUST ser `null` e `anexos` MUST ser uma lista vazia (não `null`)
+
+### Requirement: Múltiplos fechamentos por cliente e competência
+
+O sistema MUST permitir mais de um relatório fechado para a mesma combinação de cliente, mês e ano. Cada fechamento daquele cliente/competência MUST receber um `numero` sequencial (1, 2, 3...) calculado no momento do fechamento, e esse número MUST acompanhar o relatório na listagem, no detalhe e no nome do PDF.
+
+#### Scenario: Segundo fechamento do mesmo cliente e mês é permitido
+- **WHEN** já existe o relatório 1 do cliente X em 10/2026 e o usuário fecha outra tarefa elegível de 10/2026
+- **THEN** um novo relatório MUST ser criado com `numero == 2`
+- **AND** o relatório 1 MUST permanecer inalterado na lista
+
+#### Scenario: Numeração por competência
+- **WHEN** o cliente fecha um relatório em 10/2026 e outro em 11/2026
+- **THEN** cada um MUST ter `numero == 1` (a numeração é por cliente + mês + ano)
+
+#### Scenario: Numeração após reversão
+- **WHEN** o relatório 2 de um cliente/mês é revertido e um novo fechamento é feito
+- **THEN** o novo relatório MUST receber o próximo número disponível sem reaproveitar o número revertido quando houver outro relatório ativo com o mesmo número
 

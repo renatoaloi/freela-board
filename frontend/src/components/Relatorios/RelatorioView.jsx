@@ -155,6 +155,7 @@ export default function RelatorioView() {
           </div>
           <p className="text-sm text-accent-cyan mb-4">
             Período: {result.mes_referencia}
+            {result.numero > 1 ? ` · Fechamento ${result.numero}` : ''}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

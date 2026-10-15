@@ -64,6 +64,7 @@ export const relatoriosAPI = {
   get: (id) => api.get(`/relatorios/${id}`),
   downloadPdf: (id) =>
     api.get(`/relatorios/${id}/pdf`, { responseType: 'blob' }),
+  reverter: (id) => api.delete(`/relatorios/${id}`),
 };
 
 export const fechamentoAPI = {

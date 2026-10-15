@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import usePersistedState from '../../hooks/usePersistedState';
-import { fechamentoAPI, clientesAPI, projetosAPI } from '../../services/api';
+import { fechamentoAPI, clientesAPI, projetosAPI, relatoriosAPI } from '../../services/api';
 import ConfirmModal from '../Common/ConfirmModal';
 import AlertModal from '../Common/AlertModal';
 import { CheckIcon } from '@heroicons/react/24/outline';
@@ -41,6 +41,7 @@ export default function FechamentoMensal() {
   const [selectedMes, setSelectedMes] = usePersistedState('fechamento.selectedMes', new Date().getMonth() + 1);
   const [selectedAno, setSelectedAno] = usePersistedState('fechamento.selectedAno', currentYear);
   const [tarefas, setTarefas] = useState([]);
+  const [proximoNumero, setProximoNumero] = useState(1);
   const [valorHoraPorProjeto, setValorHoraPorProjeto] = useState({});
   const [selecionadas, setSelecionadas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -103,6 +104,29 @@ export default function FechamentoMensal() {
   useEffect(() => {
     fetchElegiveis();
   }, [fetchElegiveis]);
+
+  useEffect(() => {
+    if (!selectedCliente) {
+      setProximoNumero(1);
+      return;
+    }
+    relatoriosAPI
+      .list()
+      .then((res) => {
+        const doPeriodo = (res.data || []).filter(
+          (r) =>
+            r.cliente_id === selectedCliente &&
+            r.mes === selectedMes &&
+            r.ano === selectedAno,
+        );
+        setProximoNumero(
+          doPeriodo.length === 0
+            ? 1
+            : Math.max(...doPeriodo.map((r) => r.numero || 1)) + 1,
+        );
+      })
+      .catch(() => setProximoNumero(1));
+  }, [selectedCliente, selectedMes, selectedAno]);
 
   useEffect(() => {
     const map = {};
@@ -268,7 +292,7 @@ export default function FechamentoMensal() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-1">
                 <p className="text-xs text-gray-400 uppercase tracking-wider">
-                  Seleção — {mesLabel} / {selectedAno}
+                  Fechamento {proximoNumero} — {mesLabel} / {selectedAno}
                 </p>
                 <p className="text-sm text-gray-300">
                   {selecionadas.length} de {tarefas.length} tarefas ·{' '}

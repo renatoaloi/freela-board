@@ -226,4 +226,5 @@ class RelatorioPdfService:
         if not slug:
             slug = re.sub(r"[^a-zA-Z0-9]", "", data.cliente.nome).lower()[:20] or "cliente"
         mes, ano = data.mes_referencia.split("/")
-        return f"{ano}-{mes}-relatorio-{slug}.pdf"
+        sufixo = f"-fechamento-{data.numero}" if data.numero > 1 else ""
+        return f"{ano}-{mes}-relatorio-{slug}{sufixo}.pdf"

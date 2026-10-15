@@ -111,9 +111,6 @@ class ApontamentoModel(Base):
 
 class RelatorioModel(Base):
     __tablename__ = "relatorios"
-    __table_args__ = (
-        UniqueConstraint("cliente_id", "mes", "ano", name="uq_relatorio_competencia"),
-    )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -121,6 +118,7 @@ class RelatorioModel(Base):
     cliente_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("clientes.id"), nullable=False, index=True
     )
+    numero: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     mes: Mapped[int] = mapped_column(Integer, nullable=False)
     ano: Mapped[int] = mapped_column(Integer, nullable=False)
     total_horas: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)

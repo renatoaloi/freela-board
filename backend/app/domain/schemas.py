@@ -278,6 +278,7 @@ class RelatorioDadosBancariosInfo(BaseModel):
 
 class RelatorioResponse(BaseModel):
     id: str
+    numero: int = 1
     cliente: RelatorioClienteInfo
     mes_referencia: str
     totais: RelatorioTotais
@@ -289,6 +290,7 @@ class RelatorioResumo(BaseModel):
     id: str
     cliente_id: str
     cliente_nome: str
+    numero: int = 1
     mes: int
     ano: int
     total_horas: float

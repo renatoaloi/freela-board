@@ -140,6 +140,16 @@
     border-radius: 2pt;
   }
 
+  /* Projetos a partir do segundo começam em página nova para que o
+     cabeçalho nunca fique sozinho no fim da página. */
+  .projeto-nova-pagina {
+    page-break-before: always;
+  }
+
+  .projeto-cabecalho {
+    page-break-after: avoid;
+  }
+
   .projeto-header {
     font-size: 11pt;
     font-weight: 700;
@@ -195,9 +205,14 @@
   }
 
   .tarefa-bloco {
-    page-break-before: always;
     page-break-inside: avoid;
     margin-top: 10pt;
+  }
+
+  /* A primeira tarefa do projeto segue logo abaixo do cabeçalho; as
+     demais abrem página nova. */
+  .tarefa-bloco-nova-pagina {
+    page-break-before: always;
   }
 
   .tarefa-header {
@@ -377,12 +392,14 @@
 <div class="section">
   <div class="section-title">{% if tem_dados_bancarios %}4{% else %}3{% endif %}. Detalhamento por Projeto</div>
   {% for projeto in projetos %}
-  <div class="projeto">
-    <div class="projeto-header">{{ projeto.titulo }}</div>
-    <div class="projeto-meta">Valor/hora: R$ {{ projeto.valor_por_hora }} &nbsp;|&nbsp; Horas: {{ projeto.total_horas }}h</div>
+  <div class="projeto{% if not loop.first %} projeto-nova-pagina{% endif %}">
+    <div class="projeto-cabecalho">
+      <div class="projeto-header">{{ projeto.titulo }}</div>
+      <div class="projeto-meta">Valor/hora: R$ {{ projeto.valor_por_hora }} &nbsp;|&nbsp; Horas: {{ projeto.total_horas }}h</div>
+    </div>
     {% if projeto.tem_tarefas %}
     {% for tarefa in projeto.tarefas %}
-    <div class="tarefa-bloco">
+    <div class="tarefa-bloco{% if not loop.first %} tarefa-bloco-nova-pagina{% endif %}">
       <div class="tarefa-header">
         <span class="tarefa-titulo">{{ tarefa.titulo }}</span>
         <span class="tarefa-horas">{{ tarefa.total_horas }}h</span>

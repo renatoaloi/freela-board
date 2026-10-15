@@ -169,7 +169,52 @@ def test_fechar_tarefa_de_outro_cliente(
     assert response.status_code == 422
 
 
-def test_fechar_duplicado_por_competencia(
+def test_multiplos_fechamentos_no_mesmo_cliente_e_competencia(
+    client,
+    headers,
+    created_cliente,
+    created_projeto,
+    created_tarefa_pronta,
+    created_apontamento_passado,
+):
+    """Mais de um relatório por cliente/mês passa a ser permitido."""
+    primeira = client.post(
+        "/api/v1/tarefas",
+        json={"projeto_id": created_projeto["id"], "titulo": "Outra tarefa do mes"},
+        headers=headers,
+    ).json()
+    client.put(
+        f"/api/v1/tarefas/{primeira['id']}",
+        json={"status": "pronta"},
+        headers=headers,
+    )
+    client.post(
+        "/api/v1/apontamentos",
+        json={
+            "tarefa_id": primeira["id"],
+            "data": f"{ANO}-0{MES}-18",
+            "hora_ini": "09:00",
+            "hora_fim": "11:00",
+        },
+        headers=headers,
+    )
+
+    primeiro = fechar(
+        client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+    )
+    assert primeiro.status_code == 201
+    assert primeiro.json()["numero"] == 1
+
+    segundo = fechar(client, headers, created_cliente["id"], [primeira["id"]])
+    assert segundo.status_code == 201
+    assert segundo.json()["numero"] == 2
+
+    lista = client.get("/api/v1/relatorios", headers=headers).json()
+    assert len(lista) == 2
+    assert {r["numero"] for r in lista} == {1, 2}
+
+
+def test_tarefa_ja_faturada_nao_entra_em_outro_relatorio(
     client, headers, created_cliente, created_tarefa_pronta, created_apontamento_passado
 ):
     primeiro = fechar(
@@ -180,10 +225,54 @@ def test_fechar_duplicado_por_competencia(
     segundo = fechar(
         client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
     )
-    assert segundo.status_code == 409
+    assert segundo.status_code == 422
 
     lista = client.get("/api/v1/relatorios", headers=headers).json()
     assert len(lista) == 1
+
+
+def test_numeracao_e_independente_por_competencia(
+    client,
+    headers,
+    created_cliente,
+    created_projeto,
+    created_tarefa_pronta,
+    created_apontamento_passado,
+):
+    """Cada mês/ano tem sua própria contagem começando em 1."""
+    tarefa_junho = client.post(
+        "/api/v1/tarefas",
+        json={"projeto_id": created_projeto["id"], "titulo": "Tarefa de junho"},
+        headers=headers,
+    ).json()
+    client.put(
+        f"/api/v1/tarefas/{tarefa_junho['id']}",
+        json={"status": "pronta"},
+        headers=headers,
+    )
+    client.post(
+        "/api/v1/apontamentos",
+        json={
+            "tarefa_id": tarefa_junho["id"],
+            "data": f"{ANO}-06-10",
+            "hora_ini": "08:00",
+            "hora_fim": "10:00",
+        },
+        headers=headers,
+    )
+
+    assert (
+        fechar(
+            client, headers, created_cliente["id"], [created_tarefa_pronta["id"]]
+        ).json()["numero"]
+        == 1
+    )
+    assert (
+        fechar(
+            client, headers, created_cliente["id"], [tarefa_junho["id"]], mes=6
+        ).json()["numero"]
+        == 1
+    )
 
 
 def test_fechar_mesmo_cliente_em_competencias_diferentes(

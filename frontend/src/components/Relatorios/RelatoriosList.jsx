@@ -4,7 +4,8 @@ import { relatoriosAPI } from '../../services/api';
 import { formatDateBR } from '../../utils/date';
 import Loading from '../Common/Loading';
 import AlertModal from '../Common/AlertModal';
-import { DocumentTextIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import ConfirmModal from '../Common/ConfirmModal';
+import { DocumentTextIcon, ArrowDownTrayIcon, ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -27,6 +28,7 @@ export default function RelatoriosList() {
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(null);
   const [alertMsg, setAlertMsg] = useState(null);
+  const [revertTarget, setRevertTarget] = useState(null);
 
   const fetchRelatorios = useCallback(async () => {
     setLoading(true);
@@ -67,6 +69,18 @@ export default function RelatoriosList() {
     }
   };
 
+  const handleConfirmRevert = async () => {
+    if (!revertTarget) return;
+    try {
+      await relatoriosAPI.reverter(revertTarget.id);
+      await fetchRelatorios();
+    } catch (err) {
+      setAlertMsg(err.response?.data?.detail || 'Erro ao reverter o fechamento.');
+    } finally {
+      setRevertTarget(null);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
@@ -103,6 +117,7 @@ export default function RelatoriosList() {
                   className="text-sm font-medium text-white hover:text-accent-green"
                 >
                   {r.cliente_nome} — {meses[r.mes - 1]} / {r.ano}
+                  {r.numero > 1 ? ` (fechamento ${r.numero})` : ''}
                 </Link>
                 <p className="text-xs text-gray-500 mt-1">
                   Fechado em {formatDateBR(r.data_fechamento?.slice(0, 10))}
@@ -121,10 +136,27 @@ export default function RelatoriosList() {
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 {downloading === r.id ? 'Baixando...' : 'Baixar PDF'}
               </button>
+              <button
+                onClick={() => setRevertTarget(r)}
+                className="btn-secondary flex items-center gap-2 text-sm self-start"
+                title="Reverter fechamento"
+              >
+                <ArrowUturnLeftIcon className="w-4 h-4" />
+                Reverter
+              </button>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!revertTarget}
+        title="Reverter fechamento"
+        message={`O relatório de ${revertTarget?.cliente_nome} — ${revertTarget ? meses[revertTarget.mes - 1] : ''} / ${revertTarget?.ano} será excluído e as tarefas voltarão para o status Pronta, podendo ser fechadas novamente.`}
+        confirmLabel="Reverter"
+        onCancel={() => setRevertTarget(null)}
+        onConfirm={handleConfirmRevert}
+      />
 
       <AlertModal
         isOpen={!!alertMsg}

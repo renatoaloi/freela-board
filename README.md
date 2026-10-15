@@ -22,7 +22,9 @@ Sistema de controle de horas trabalhadas em tarefas para freelancers. Gera relat
 - Total de horas calculado automaticamente no backend (hora fim - hora início)
 - Relatório gerado a partir do fechamento do mês e gravado como snapshot (não é recalculado depois) — relatórios fechados antes do detalhamento diário/anexos não ganham essas informações retroativamente
 - No PDF do relatório, cada tarefa inicia uma nova página com seus dias de apontamento, descrição e mosaico de imagens; anexos que não são imagem ficam fora do PDF
-- Só entram no fechamento tarefas com status `pronta` que tenham apontamentos no mês/ano escolhidos; cada cliente admite um relatório por competência
+- Só entram no fechamento tarefas com status `pronta` que tenham apontamentos no mês/ano escolhidos; uma tarefa só entra em **um** relatório (já faturada não reaparece)
+- Um mesmo cliente pode ter **mais de um relatório por competência**, numerados sequencialmente (fechamento 1, 2, 3...)
+- Um relatório pode ser **revertido**: o relatório é excluído e suas tarefas voltam para `pronta`, ficando disponíveis para um novo fechamento
 - Após o fechamento, as tarefas selecionadas passam para o status `fechada` e saem do fluxo do Kanban
 - O filtro de mês/ano do Kanban considera a data dos apontamentos da tarefa; tarefas sem nenhum apontamento aparecem em qualquer competência selecionada, e ficam ocultas apenas as que têm apontamentos em outro período
 - Upload de arquivos organizado em pastas `storage/{cliente_id}/{projeto_id}/{tarefa_id}/`
@@ -192,6 +194,7 @@ Todos sob o prefixo `/api/v1`:
 | `GET` | `/relatorios` | Listar relatórios fechados |
 | `GET` | `/relatorios/{id}` | Obter o relatório fechado (snapshot) |
 | `GET` | `/relatorios/{id}/pdf` | Baixar PDF do relatório fechado |
+| `DELETE` | `/relatorios/{id}` | Reverter o fechamento (exclui o relatório e devolve as tarefas para Pronta) |
 | **Fechamento mensal** | | |
 | `GET` | `/fechamentos/tarefas-elegiveis` | Listar tarefas prontas do período aptas a fechamento (`?cliente_id=&mes=&ano=&projeto_id=`) |
 | `POST` | `/fechamentos` | Fechar o mês (body: `cliente_id`, `mes`, `ano`, `tarefa_ids`) |

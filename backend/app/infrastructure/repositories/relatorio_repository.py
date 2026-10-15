@@ -163,6 +163,7 @@ class RelatorioRepository:
         self,
         relatorio_id: str,
         cliente_id: str,
+        numero: int,
         mes: int,
         ano: int,
         total_horas: float,
@@ -172,6 +173,7 @@ class RelatorioRepository:
         relatorio = RelatorioModel(
             id=relatorio_id,
             cliente_id=cliente_id,
+            numero=numero,
             mes=mes,
             ano=ano,
             total_horas=total_horas,
@@ -188,11 +190,46 @@ class RelatorioRepository:
                 RelatorioTarefaModel(relatorio_id=relatorio_id, tarefa_id=tarefa_id)
             )
 
+    def proximo_numero(self, cliente_id: str, mes: int, ano: int) -> int:
+        ultimo = (
+            self.db.query(func.max(RelatorioModel.numero))
+            .filter(
+                RelatorioModel.cliente_id == cliente_id,
+                RelatorioModel.mes == mes,
+                RelatorioModel.ano == ano,
+            )
+            .scalar()
+        )
+        return int(ultimo or 0) + 1
+
+    def get_tarefas_ids_do_relatorio(self, relatorio_id: str) -> list[str]:
+        rows = (
+            self.db.query(RelatorioTarefaModel.tarefa_id)
+            .filter(RelatorioTarefaModel.relatorio_id == relatorio_id)
+            .all()
+        )
+        return [r.tarefa_id for r in rows]
+
+    def delete_vinculos(self, relatorio_id: str) -> None:
+        self.db.query(RelatorioTarefaModel).filter(
+            RelatorioTarefaModel.relatorio_id == relatorio_id
+        ).delete()
+
+    def delete_relatorio(self, relatorio_id: str) -> None:
+        row = (
+            self.db.query(RelatorioModel)
+            .filter(RelatorioModel.id == relatorio_id)
+            .first()
+        )
+        if row:
+            self.db.delete(row)
+
     def list_relatorios(self) -> list[dict]:
         rows = (
             self.db.query(
                 RelatorioModel.id.label("id"),
                 RelatorioModel.cliente_id.label("cliente_id"),
+                RelatorioModel.numero.label("numero"),
                 RelatorioModel.mes.label("mes"),
                 RelatorioModel.ano.label("ano"),
                 RelatorioModel.total_horas.label("total_horas"),
@@ -201,7 +238,11 @@ class RelatorioRepository:
                 ClienteModel.nome.label("cliente_nome"),
             )
             .join(ClienteModel, ClienteModel.id == RelatorioModel.cliente_id)
-            .order_by(RelatorioModel.ano.desc(), RelatorioModel.mes.desc())
+            .order_by(
+                RelatorioModel.ano.desc(),
+                RelatorioModel.mes.desc(),
+                RelatorioModel.numero.desc(),
+            )
             .all()
         )
         return [
@@ -209,6 +250,7 @@ class RelatorioRepository:
                 "id": r.id,
                 "cliente_id": r.cliente_id,
                 "cliente_nome": r.cliente_nome,
+                "numero": int(r.numero),
                 "mes": r.mes,
                 "ano": r.ano,
                 "total_horas": float(r.total_horas),
